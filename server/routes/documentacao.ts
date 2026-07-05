@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import pkg from 'pg';
+import { createPool } from '../db';
 import { auth } from '../middleware/auth';
 import { analisarCnpjReceitaCartaoEmpresa, buscarUltimaAnaliseCnpjEmpresa, limparAnalisesCnpjEmpresa } from '../services/analiseCnpjReceitaCartao';
 // Importa serviço de IA externo (Gemini). Ao concentrar a chamada em um serviço
@@ -7,14 +7,7 @@ import { analisarCnpjReceitaCartaoEmpresa, buscarUltimaAnaliseCnpjEmpresa, limpa
 // provedor de IA alterando apenas este módulo.
 import { callGemini } from '../services/gemini';
 
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const pool = createPool({ max: 5 });
 
 const router = Router();
 

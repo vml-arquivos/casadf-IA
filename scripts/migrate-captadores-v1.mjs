@@ -18,9 +18,13 @@ import { dirname, join } from "path";
 const { Pool } = pkg;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const dbUrl = process.env.DATABASE_URL || "";
+const exigeSSL =
+  process.env.DATABASE_SSL === "true" ||
+  /supabase\.co|supabase\.com|pooler\.supabase\.com|amazonaws\.com|render\.com|neon\.tech/i.test(dbUrl);
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
+  connectionString: dbUrl,
+  ssl: exigeSSL ? { rejectUnauthorized: false } : false,
 });
 
 async function main() {

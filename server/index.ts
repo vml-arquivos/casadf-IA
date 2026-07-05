@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import crypto from "crypto";
 import multer from "multer";
-import pkg from "pg";
+import { createPool } from "./db.ts";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { auth } from "./middleware/auth.ts";
@@ -40,21 +40,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ─── PostgreSQL Pool ─────────────────────────────────────────────────────────
-// SSL: bancos gerenciados externos (Supabase, RDS, etc.) exigem SSL. Bancos
-// internos (container Postgres na mesma rede do Coolify/VPS) normalmente não.
-// Detecta automaticamente pelo host ou permite forçar via DATABASE_SSL=true.
-const dbUrl = process.env.DATABASE_URL || "";
-const exigeSSL =
-  process.env.DATABASE_SSL === "true" ||
-  /supabase\.co|amazonaws\.com|render\.com|neon\.tech/i.test(dbUrl);
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: exigeSSL ? { rejectUnauthorized: false } : false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+// Pool centralizado com SSL automático para Supabase e outros bancos externos.
+const pool = createPool({ max: 10 });
 
 pool.on("error", (err) => {
   console.error("[DB] Erro inesperado no pool:", err.message);

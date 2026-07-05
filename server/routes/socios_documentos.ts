@@ -3,19 +3,12 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import pkg from 'pg';
+import { createPool } from '../db';
 import { auth } from '../middleware/auth';
 import { consultarCPFHub, validarCPF as validarCPFHub } from '../services/cpfhub';
 import { consultarCPFCNPJ } from '../services/cpfcnpj';
 
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const pool = createPool({ max: 5 });
 
 const router = Router();
 

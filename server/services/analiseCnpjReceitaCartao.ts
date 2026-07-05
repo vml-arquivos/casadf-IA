@@ -1,16 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
-import pkg from 'pg';
+import { createPool } from '../db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const pool = createPool({ max: 5 });
 
 type Severidade = 'baixa' | 'media' | 'alta' | 'critica';
 

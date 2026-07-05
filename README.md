@@ -18,7 +18,7 @@ Este repositório contém a base para o sistema **Casa DF**, uma plataforma comp
 1. **Clone o repositório** e instale as dependências:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. **Configure o ambiente** copiando o arquivo `.env.example` para `.env` e ajustando as variáveis (URLs de serviços, chaves de API, e-mail etc.):
@@ -31,13 +31,13 @@ Este repositório contém a base para o sistema **Casa DF**, uma plataforma comp
 3. **Execute as migrations** (quando houver):
 
    ```bash
-   npm run migrate
+   pnpm run migrate:all
    ```
 
 4. **Inicie o servidor de desenvolvimento**:
 
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 
    - O frontend estará acessível em `http://localhost:5173`.
@@ -57,3 +57,33 @@ Este repositório contém a base para o sistema **Casa DF**, uma plataforma comp
 - Para utilizar os recursos de IA, configure as variáveis `OPENAI_API_KEY`, `GEMINI_API_URL` e ajuste os prompts conforme as análises necessárias para o mercado imobiliário.
 
 Sinta-se à vontade para personalizar o layout, criar novos módulos e ajustar a experiência conforme a identidade visual e as necessidades da **Casa DF**.
+
+## Banco externo no Supabase
+
+O projeto foi ajustado para usar PostgreSQL externo no Supabase via `DATABASE_URL` com SSL automático. Para produção, leia também `DEPLOY_SUPABASE.md`.
+
+Resumo rápido:
+
+```env
+DATABASE_URL=postgresql://postgres.[PROJECT_REF]:SENHA@aws-0-REGIAO.pooler.supabase.com:5432/postgres
+DATABASE_SSL=true
+JWT_SECRET=gere-um-segredo-novo
+VITE_APP_TITLE=Casa DF
+```
+
+Para banco novo/vazio, rode:
+
+```bash
+pnpm run migrate:all
+```
+
+## Supabase / banco externo
+
+Para projeto Supabase novo e vazio, não crie tabelas manualmente. Use:
+
+```bash
+pnpm install
+DATABASE_URL="postgresql://postgres.PROJECT_REF:SENHA@aws-0-REGIAO.pooler.supabase.com:5432/postgres" DATABASE_SSL=true pnpm run migrate:all
+```
+
+Também há um guia completo em `SUPABASE_SETUP_PRONTO.md` e um SQL consolidado em `supabase/init_casa_df_full.sql`.

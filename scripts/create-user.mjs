@@ -15,7 +15,11 @@ import bcrypt from "bcryptjs";
 import * as readline from "readline";
 
 const { Pool } = pkg;
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
+const dbUrl = process.env.DATABASE_URL || "";
+const exigeSSL =
+  process.env.DATABASE_SSL === "true" ||
+  /supabase\.co|supabase\.com|pooler\.supabase\.com|amazonaws\.com|render\.com|neon\.tech/i.test(dbUrl);
+const pool = new Pool({ connectionString: dbUrl, ssl: exigeSSL ? { rejectUnauthorized: false } : false });
 
 function perguntar(rl, pergunta) {
   return new Promise((resolve) => rl.question(pergunta, resolve));

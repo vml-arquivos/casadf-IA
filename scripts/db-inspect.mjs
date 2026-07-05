@@ -17,7 +17,11 @@ import pkg from "pg";
 import { writeFileSync } from "fs";
 
 const { Pool } = pkg;
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
+const dbUrl = process.env.DATABASE_URL || "";
+const exigeSSL =
+  process.env.DATABASE_SSL === "true" ||
+  /supabase\.co|supabase\.com|pooler\.supabase\.com|amazonaws\.com|render\.com|neon\.tech/i.test(dbUrl);
+const pool = new Pool({ connectionString: dbUrl, ssl: exigeSSL ? { rejectUnauthorized: false } : false });
 
 const SEP  = "─".repeat(72);
 const SEP2 = "═".repeat(72);

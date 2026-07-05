@@ -3,7 +3,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import pkg from 'pg';
+import { createPool } from '../db';
 import { auth } from '../middleware/auth';
 
 // Importa utilitários de validação/sanitização centralizados. Estas funções
@@ -12,14 +12,7 @@ import { auth } from '../middleware/auth';
 // implementações duplicadas neste arquivo.
 import { isUuid as uuidValidator, safeJson as toSafeJson, sanitizeFileName as normalizeFileName } from '../utils/validators';
 
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const pool = createPool({ max: 5 });
 
 const router = Router();
 

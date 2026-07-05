@@ -16,7 +16,9 @@
     "db:inspect": "node scripts/db-inspect.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "db:setup:supabase": "node scripts/migrate-all.mjs",
+    "db:init:sql": "echo \"Arquivo pronto em supabase/init_casa_df_full.sql\""
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
