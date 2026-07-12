@@ -77,8 +77,18 @@
 - /ia/avaliacao-imovel
 - /ia/relatorios
 
+## Deploy (Coolify + VPS Google Cloud + PostgreSQL interno)
+
+O projeto está configurado para deploy no Coolify com PostgreSQL interno:
+- **db.ts**: Detecta automaticamente conexões internas (Coolify/Docker) → sem SSL
+- **Dockerfile**: Multi-stage com heartbeats para evitar timeout no Coolify
+- **.env.example**: Template completo com variáveis para Coolify
+- **DEPLOY_COOLIFY.md**: Guia completo de deploy
+- **Volume persistente**: `/var/data/casadf` para fotos e PDFs
+- **Pool ajustável**: `POOL_MAX`, `POOL_IDLE_TIMEOUT`, `POOL_CONNECTION_TIMEOUT`
+
 ## Zero Regressão
 - Não alterar APIs existentes
 - Não remover módulos
-- Manter compatibilidade total com Supabase
-- SSL automático para banco externo
+- Manter compatibilidade total com Supabase e Coolify (PostgreSQL interno)
+- SSL automático para banco externo, sem SSL para banco interno (Coolify/Docker)
