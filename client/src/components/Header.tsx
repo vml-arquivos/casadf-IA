@@ -20,6 +20,7 @@ export default function Header() {
   const navItems: NavItem[] = [
     { label: "Início", href: "/" },
     { label: "Imóveis", href: "/imoveis" },
+    { label: "Vitrine Premium", href: "/vitrine-premium" },
     { label: "Blog", href: "/blog" },
     { label: "Notícias", href: "/noticias" },
     { label: "Sobre", href: "/sobre" },

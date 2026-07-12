@@ -33,6 +33,16 @@ import {
   gerarDiagnosticoSemana,
   calcularAcumulados,
 } from "./funcoes_acompanhamento.ts";
+import {
+  calcularLeadScore,
+  encontrarMatchesImovel,
+  simularMultiBanco,
+  assistenteConversar,
+  analisarDocumentoJuridico,
+  analisarFinanceiro,
+  avaliarImovel,
+  gerarRelatorioInteligente,
+} from "./services/ia-imobiliaria.ts";
 
 const { Pool } = pkg;
 
@@ -13025,6 +13035,311 @@ ${canal === "whatsapp"
   // ── FIM DO MÓDULO: IA / AUTOMAÇÕES ───────────────────────────────────────────
 
   // ── FIM DO MÓDULO: IA / RECOMENDAÇÕES ────────────────────────────────────────
+
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // MÓDULO: IA IMOBILIÁRIA — Casa DF Gestão Imobiliária Inteligente
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * POST /api/ia/lead-score — Gera score automático do lead
+   */
+  app.post("/api/ia/lead-score", auth, async (req: Request, res: Response) => {
+    try {
+      const { lead_id, ...extras } = req.body;
+      if (!lead_id) return res.status(400).json({ error: "lead_id obrigatório" });
+      const resultado = await calcularLeadScore(pool, lead_id, extras);
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/lead-score]", err);
+      res.status(500).json({ error: err.message || "Erro ao calcular lead score" });
+    }
+  });
+
+  /**
+   * GET /api/ia/lead-score/:leadId — Obtém score do lead
+   */
+  app.get("/api/ia/lead-score/:leadId", auth, async (req: Request, res: Response) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT * FROM lead_scores WHERE lead_id = $1 ORDER BY atualizado_em DESC LIMIT 1`,
+        [req.params.leadId]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: "Score não encontrado" });
+      res.json(rows[0]);
+    } catch (err: any) {
+      console.error("[GET /api/ia/lead-score/:leadId]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/match-imovel — Encontra imóveis compatíveis com o lead
+   */
+  app.post("/api/ia/match-imovel", auth, async (req: Request, res: Response) => {
+    try {
+      const { lead_id, limit } = req.body;
+      if (!lead_id) return res.status(400).json({ error: "lead_id obrigatório" });
+      const matches = await encontrarMatchesImovel(pool, lead_id, limit || 10);
+      res.json({ lead_id, matches, total: matches.length });
+    } catch (err: any) {
+      console.error("[POST /api/ia/match-imovel]", err);
+      res.status(500).json({ error: err.message || "Erro ao encontrar matches" });
+    }
+  });
+
+  /**
+   * GET /api/ia/match-imovel/:leadId — Obtém matches de um lead
+   */
+  app.get("/api/ia/match-imovel/:leadId", auth, async (req: Request, res: Response) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT m.*, i.codigo, i.titulo, i.tipo, i.valor_venda, i.valor_locacao,
+                i.bairro, i.cidade, i.area_privativa, i.quartos, i.foto_capa_url
+         FROM imovel_matches m
+         JOIN imoveis i ON m.imovel_id = i.id
+         WHERE m.lead_id = $1
+         ORDER BY m.score_compatibilidade DESC`,
+        [req.params.leadId]
+      );
+      res.json({ lead_id: req.params.leadId, matches: rows });
+    } catch (err: any) {
+      console.error("[GET /api/ia/match-imovel/:leadId]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/simulador-multi-banco — Simula financiamento em múltiplos bancos
+   */
+  app.post("/api/ia/simulador-multi-banco", auth, async (req: Request, res: Response) => {
+    try {
+      const { valor_imovel, entrada, prazo_meses, lead_id, imovel_id } = req.body;
+      if (!valor_imovel || !prazo_meses) return res.status(400).json({ error: "valor_imovel e prazo_meses obrigatórios" });
+      const resultado = await simularMultiBanco(pool, {
+        valor_imovel: Number(valor_imovel),
+        entrada: Number(entrada) || 0,
+        prazo_meses: Number(prazo_meses),
+        lead_id: lead_id || null,
+        imovel_id: imovel_id || null,
+        colaborador_id: (req as any).user?.id || null,
+      });
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/simulador-multi-banco]", err);
+      res.status(500).json({ error: err.message || "Erro na simulação" });
+    }
+  });
+
+  /**
+   * GET /api/ia/simulador-multi-banco/:id — Obtém simulação salva
+   */
+  app.get("/api/ia/simulador-multi-banco/:id", auth, async (req: Request, res: Response) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT * FROM simulacoes_multi_banco WHERE id = $1`,
+        [req.params.id]
+      );
+      if (rows.length === 0) return res.status(404).json({ error: "Simulação não encontrada" });
+      res.json(rows[0]);
+    } catch (err: any) {
+      console.error("[GET /api/ia/simulador-multi-banco/:id]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/assistente — Assistente conversacional Gemini
+   */
+  app.post("/api/ia/assistente", async (req: Request, res: Response) => {
+    try {
+      const { session_id, mensagem, contexto } = req.body;
+      if (!mensagem) return res.status(400).json({ error: "mensagem obrigatória" });
+      const resultado = await assistenteConversar(pool, session_id || "public", mensagem, contexto || {});
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/assistente]", err);
+      res.status(500).json({ error: err.message || "Erro no assistente" });
+    }
+  });
+
+  /**
+   * GET /api/ia/assistente/:sessionId — Obtém histórico de sessão
+   */
+  app.get("/api/ia/assistente/:sessionId", auth, async (req: Request, res: Response) => {
+    try {
+      const session = await pool.query("SELECT * FROM assistente_sessions WHERE id = $1", [req.params.sessionId]);
+      if (session.rows.length === 0) return res.status(404).json({ error: "Sessão não encontrada" });
+      const messages = await pool.query(
+        `SELECT * FROM assistente_messages WHERE session_id = $1 ORDER BY criado_em ASC`,
+        [req.params.sessionId]
+      );
+      res.json({ session: session.rows[0], messages: messages.rows });
+    } catch (err: any) {
+      console.error("[GET /api/ia/assistente/:sessionId]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/analise-juridica — Análise jurídica de documentos
+   */
+  app.post("/api/ia/analise-juridica", auth, async (req: Request, res: Response) => {
+    try {
+      const { documento_id, imovel_id, lead_id, tipo_documento, conteudo } = req.body;
+      const resultado = await analisarDocumentoJuridico(pool, {
+        documento_id: documento_id || null,
+        imovel_id: imovel_id || null,
+        lead_id: lead_id || null,
+        tipo_documento: tipo_documento || null,
+        conteudo: conteudo || null,
+        colaborador_id: (req as any).user?.id || null,
+      });
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/analise-juridica]", err);
+      res.status(500).json({ error: err.message || "Erro na análise jurídica" });
+    }
+  });
+
+  /**
+   * GET /api/ia/analise-juridica/imovel/:imovelId — Análises de um imóvel
+   */
+  app.get("/api/ia/analise-juridica/imovel/:imovelId", auth, async (req: Request, res: Response) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT * FROM analises_juridicas WHERE imovel_id = $1 ORDER BY criado_em DESC`,
+        [req.params.imovelId]
+      );
+      res.json({ imovel_id: req.params.imovelId, analises: rows });
+    } catch (err: any) {
+      console.error("[GET /api/ia/analise-juridica/imovel]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/analise-financeira — Análise financeira do lead
+   */
+  app.post("/api/ia/analise-financeira", auth, async (req: Request, res: Response) => {
+    try {
+      const { lead_id, imovel_id, renda_mensal, compromissos_mensais } = req.body;
+      if (!lead_id) return res.status(400).json({ error: "lead_id obrigatório" });
+      const resultado = await analisarFinanceiro(pool, {
+        lead_id,
+        imovel_id: imovel_id || null,
+        renda_mensal: Number(renda_mensal) || null,
+        compromissos_mensais: Number(compromissos_mensais) || 0,
+        colaborador_id: (req as any).user?.id || null,
+      });
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/analise-financeira]", err);
+      res.status(500).json({ error: err.message || "Erro na análise financeira" });
+    }
+  });
+
+  /**
+   * GET /api/ia/analise-financeira/:leadId — Obtém análise financeira do lead
+   */
+  app.get("/api/ia/analise-financeira/:leadId", auth, async (req: Request, res: Response) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT * FROM analises_financeiras WHERE lead_id = $1 ORDER BY criado_em DESC`,
+        [req.params.leadId]
+      );
+      res.json({ lead_id: req.params.leadId, analises: rows });
+    } catch (err: any) {
+      console.error("[GET /api/ia/analise-financeira/:leadId]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/avaliacao-imovel — Avaliação imobiliária com IA
+   */
+  app.post("/api/ia/avaliacao-imovel", auth, async (req: Request, res: Response) => {
+    try {
+      const { imovel_id } = req.body;
+      if (!imovel_id) return res.status(400).json({ error: "imovel_id obrigatório" });
+      const resultado = await avaliarImovel(pool, {
+        imovel_id,
+        colaborador_id: (req as any).user?.id || null,
+      });
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/avaliacao-imovel]", err);
+      res.status(500).json({ error: err.message || "Erro na avaliação" });
+    }
+  });
+
+  /**
+   * GET /api/ia/avaliacao-imovel/:imovelId — Obtém avaliação do imóvel
+   */
+  app.get("/api/ia/avaliacao-imovel/:imovelId", auth, async (req: Request, res: Response) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT * FROM avaliacoes_imoveis WHERE imovel_id = $1 ORDER BY criado_em DESC`,
+        [req.params.imovelId]
+      );
+      res.json({ imovel_id: req.params.imovelId, avaliacoes: rows });
+    } catch (err: any) {
+      console.error("[GET /api/ia/avaliacao-imovel/:imovelId]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /api/ia/relatorio-inteligente — Gera relatório inteligente
+   */
+  app.post("/api/ia/relatorio-inteligente", auth, async (req: Request, res: Response) => {
+    try {
+      const { tipo, periodo_inicio, periodo_fim } = req.body;
+      if (!tipo) return res.status(400).json({ error: "tipo obrigatório" });
+      const resultado = await gerarRelatorioInteligente(pool, {
+        tipo,
+        periodo_inicio: periodo_inicio || null,
+        periodo_fim: periodo_fim || null,
+        colaborador_id: (req as any).user?.id || null,
+      });
+      res.json(resultado);
+    } catch (err: any) {
+      console.error("[POST /api/ia/relatorio-inteligente]", err);
+      res.status(500).json({ error: err.message || "Erro ao gerar relatório" });
+    }
+  });
+
+  /**
+   * GET /api/ia/dashboard — Dashboard consolidado de IA
+   */
+  app.get("/api/ia/dashboard", auth, async (req: Request, res: Response) => {
+    try {
+      const [scores, matches, simulacoes, juridicas, financeiras, avaliacoes] = await Promise.all([
+        pool.query(`SELECT COUNT(*)::int as total FROM lead_scores`),
+        pool.query(`SELECT COUNT(*)::int as total FROM imovel_matches`),
+        pool.query(`SELECT COUNT(*)::int as total FROM simulacoes_multi_banco`),
+        pool.query(`SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE necessidade_revisao = TRUE) as pendentes FROM analises_juridicas`),
+        pool.query(`SELECT COUNT(*)::int as total FROM analises_financeiras`),
+        pool.query(`SELECT COUNT(*)::int as total FROM avaliacoes_imoveis`),
+      ]);
+
+      res.json({
+        lead_scores: scores.rows[0],
+        matches: matches.rows[0],
+        simulacoes: simulacoes.rows[0],
+        analises_juridicas: juridicas.rows[0],
+        analises_financeiras: financeiras.rows[0],
+        avaliacoes: avaliacoes.rows[0],
+        gerado_em: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.error("[GET /api/ia/dashboard]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // FIM DO MÓDULO: IA IMOBILIÁRIA
 
 
 

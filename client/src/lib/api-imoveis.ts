@@ -377,3 +377,219 @@ export async function enviarFotoCorretor(id: string, file: File): Promise<Corret
   fd.append("foto", file);
   return apiFetch(`/api/corretores/${id}/foto`, { method: "POST", body: fd });
 }
+// ═══════════════════════════════════════════════════════════════════════════════
+// API — IA Imobiliária (Casa DF Gestão Imobiliária Inteligente)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export type LeadScore = {
+  id: string;
+  lead_id: string;
+  score: number;
+  classificacao: string;
+  fatores: Record<string, number>;
+  detalhes: Record<string, any>;
+  observacoes_ia?: string;
+  criado_em: string;
+  atualizado_em: string;
+};
+
+export type MatchImovel = {
+  id: string;
+  lead_id: string;
+  imovel_id: string;
+  score_compatibilidade: number;
+  razoes: string[];
+  fatores_match: Record<string, number>;
+  posicao_ranking: number;
+  criado_em: string;
+  codigo?: string;
+  titulo?: string;
+  tipo?: string;
+  valor_venda?: number;
+  valor_locacao?: number;
+  bairro?: string;
+  cidade?: string;
+  foto_capa_url?: string;
+};
+
+export type SimulacaoBanco = {
+  banco: string;
+  chave: string;
+  cor: string;
+  sistema: string;
+  taxa_juros_mensal: number;
+  taxa_seguro: number;
+  taxa_sf: number;
+  valor_financiamento: number;
+  parcela_mensal: number;
+  total_juros: number;
+  total_seguro: number;
+  total_pago: number;
+};
+
+export type SimulacaoMultiBanco = {
+  id: string;
+  valor_imovel: number;
+  valor_entrada: number;
+  prazo_meses: number;
+  resultado_caixa?: Record<string, any>;
+  resultado_itau?: Record<string, any>;
+  resultado_santander?: Record<string, any>;
+  resultado_bradesco?: Record<string, any>;
+  resultado_banco_brasil?: Record<string, any>;
+  resultado_brb?: Record<string, any>;
+  recomendacao?: string;
+  criado_em: string;
+};
+
+export type AnaliseJuridica = {
+  id: string;
+  documento_id?: string;
+  imovel_id?: string;
+  lead_id?: string;
+  tipo_documento?: string;
+  riscos_identificados: { tipo: string; descricao: string; nivel: string }[];
+  pendencias: { descricao: string; acao_requerida: string }[];
+  recomendacoes: { descricao: string; prioridade: string }[];
+  necessidade_revisao: boolean;
+  analise_ia?: string;
+  resumo_executivo?: string;
+  criado_em: string;
+};
+
+export type AnaliseFinanceira = {
+  id: string;
+  lead_id: string;
+  renda_mensal?: number;
+  capacidade_compra: number;
+  comprometimento_renda: number;
+  entrada_necessaria: number;
+  prazo_ideal_meses: number;
+  risco_aprovacao: string;
+  perfil_financeiro: Record<string, any>;
+  recomendacao_ia?: string;
+  criado_em: string;
+};
+
+export type AvaliacaoImovel = {
+  id: string;
+  imovel_id: string;
+  valor_estimado: number;
+  valor_minimo?: number;
+  valor_maximo?: number;
+  metodo?: string;
+  fatores_avaliacao: Record<string, number>;
+  imoveis_comparaveis: any[];
+  metodologia_descricao?: string;
+  margem_confianca?: number;
+  criado_em: string;
+};
+
+export type AssistenteResponse = {
+  session_id: string;
+  resposta: string;
+  historico_len: number;
+};
+
+// ── IA Imobiliária: endpoints ─────────────────────────────────────────────────
+
+export async function calcularLeadScore(leadId: string, extras?: any): Promise<LeadScore> {
+  return apiFetch(`/api/ia/lead-score`, {
+    method: "POST",
+    body: JSON.stringify({ lead_id: leadId, ...extras }),
+  });
+}
+
+export async function buscarLeadScore(leadId: string): Promise<LeadScore> {
+  return apiFetch(`/api/ia/lead-score/${leadId}`);
+}
+
+export async function encontrarMatches(leadId: string, limit?: number): Promise<{ matches: MatchImovel[]; total: number }> {
+  return apiFetch(`/api/ia/match-imovel`, {
+    method: "POST",
+    body: JSON.stringify({ lead_id: leadId, limit }),
+  });
+}
+
+export async function buscarMatches(leadId: string): Promise<{ matches: MatchImovel[] }> {
+  return apiFetch(`/api/ia/match-imovel/${leadId}`);
+}
+
+export async function simularMultiBanco(dados: {
+  valor_imovel: number;
+  entrada: number;
+  prazo_meses: number;
+  lead_id?: string;
+  imovel_id?: string;
+}): Promise<any> {
+  return apiFetch(`/api/ia/simulador-multi-banco`, {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function assistenteEnviar(sessionId: string, mensagem: string, contexto?: any): Promise<AssistenteResponse> {
+  return apiFetch(`/api/ia/assistente`, {
+    method: "POST",
+    body: JSON.stringify({ session_id: sessionId, mensagem, contexto }),
+  });
+}
+
+export async function buscarSessaoAssistente(sessionId: string): Promise<any> {
+  return apiFetch(`/api/ia/assistente/${sessionId}`);
+}
+
+export async function analisarJuridico(dados: {
+  documento_id?: string;
+  imovel_id?: string;
+  lead_id?: string;
+  tipo_documento?: string;
+  conteudo?: string;
+}): Promise<AnaliseJuridica> {
+  return apiFetch(`/api/ia/analise-juridica`, {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function buscarAnalisesJuridicasImovel(imovelId: string): Promise<{ analises: AnaliseJuridica[] }> {
+  return apiFetch(`/api/ia/analise-juridica/imovel/${imovelId}`);
+}
+
+export async function analisarFinanceiro(dados: {
+  lead_id: string;
+  imovel_id?: string;
+  renda_mensal?: number;
+  compromissos_mensais?: number;
+}): Promise<AnaliseFinanceira> {
+  return apiFetch(`/api/ia/analise-financeira`, {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+}
+
+export async function buscarAnalisesFinanceiras(leadId: string): Promise<{ analises: AnaliseFinanceira[] }> {
+  return apiFetch(`/api/ia/analise-financeira/${leadId}`);
+}
+
+export async function avaliarImovelApi(imovelId: string): Promise<AvaliacaoImovel> {
+  return apiFetch(`/api/ia/avaliacao-imovel`, {
+    method: "POST",
+    body: JSON.stringify({ imovel_id: imovelId }),
+  });
+}
+
+export async function buscarAvaliacoesImovel(imovelId: string): Promise<{ avaliacoes: AvaliacaoImovel[] }> {
+  return apiFetch(`/api/ia/avaliacao-imovel/${imovelId}`);
+}
+
+export async function gerarRelatorioInteligente(tipo: string, periodo_inicio?: string, periodo_fim?: string): Promise<any> {
+  return apiFetch(`/api/ia/relatorio-inteligente`, {
+    method: "POST",
+    body: JSON.stringify({ tipo, periodo_inicio, periodo_fim }),
+  });
+}
+
+export async function buscarIADashboard(): Promise<any> {
+  return apiFetch(`/api/ia/dashboard`);
+}

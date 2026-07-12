@@ -68,6 +68,17 @@ import CadastroEmpresa from "./pages/colaborador/CadastroEmpresa";
 import DadosIncompletos from "./pages/colaborador/DadosIncompletos";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CargoRoute from "./components/CargoRoute";
+// IA Imobiliária
+import CentralIA from "./pages/colaborador/CentralIA";
+import IALeadScore from "./pages/colaborador/IALeadScore";
+import IAMatchImovel from "./pages/colaborador/IAMatchImovel";
+import IASimuladorMultiBanco from "./pages/colaborador/IASimuladorMultiBanco";
+import IAAssistente from "./pages/colaborador/IAAssistente";
+import IAAnaliseJuridica from "./pages/colaborador/IAAnaliseJuridica";
+import IAAnaliseFinanceira from "./pages/colaborador/IAAnaliseFinanceira";
+import IAAvaliacaoImovel from "./pages/colaborador/IAAvaliacaoImovel";
+import IARelatorios from "./pages/colaborador/IARelatorios";
+import VitrinePremium from "./pages/VitrinePremium";
 
 function Router() {
   return (
@@ -350,6 +361,74 @@ function Router() {
           </ProtectedRoute>
         )}
       </Route>
+
+      {/* ═══════ IA Imobiliária — Casa DF ═══════ */}
+      <Route path="/colaborador/ia">
+        {() => (
+          <ProtectedRoute>
+            <CentralIA />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/lead-score">
+        {() => (
+          <ProtectedRoute>
+            <IALeadScore />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/match-imovel">
+        {() => (
+          <ProtectedRoute>
+            <IAMatchImovel />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/simulador-multi-banco">
+        {() => (
+          <ProtectedRoute>
+            <IASimuladorMultiBanco />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/assistente">
+        {() => (
+          <ProtectedRoute>
+            <IAAssistente />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/analise-juridica">
+        {() => (
+          <ProtectedRoute>
+            <IAAnaliseJuridica />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/analise-financeira">
+        {() => (
+          <ProtectedRoute>
+            <IAAnaliseFinanceira />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/avaliacao-imovel">
+        {() => (
+          <ProtectedRoute>
+            <IAAvaliacaoImovel />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/colaborador/ia/relatorios">
+        {() => (
+          <ProtectedRoute>
+            <IARelatorios />
+          </ProtectedRoute>
+        )}
+      </Route>
+
+      {/* Vitrine Premium */}
+      <Route path="/vitrine-premium" component={VitrinePremium} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />
