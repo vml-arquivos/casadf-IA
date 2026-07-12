@@ -8,7 +8,7 @@ import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
 function getGemModel(): GenerativeModel {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
   return genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     generationConfig: { responseMimeType: "application/json", temperature: 0.3 } as any,
   });
 }
@@ -16,7 +16,7 @@ function getGemModel(): GenerativeModel {
 function getGemModelChat(): GenerativeModel {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
   return genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     generationConfig: { temperature: 0.7 } as any,
   });
 }
@@ -48,9 +48,12 @@ async function callGeminiText(prompt: string, temperature = 0.7): Promise<string
 async function callOpenAIJson(prompt: string, temperature = 0.3): Promise<any> {
   try {
     const { OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: process.env.OPENAI_API_BASE || undefined,
+    });
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [{ role: "system", content: "Responda sempre em JSON válido." }, { role: "user", content: prompt }],
       temperature,
       response_format: { type: "json_object" } as any,
@@ -65,9 +68,12 @@ async function callOpenAIJson(prompt: string, temperature = 0.3): Promise<any> {
 async function callOpenAIText(prompt: string, temperature = 0.7): Promise<string> {
   try {
     const { OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: process.env.OPENAI_API_BASE || undefined,
+    });
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature,
     });
@@ -124,7 +130,7 @@ Dados extras fornecidos:
 ${JSON.stringify(dadosExtras, null, 2)}
 
 Imóveis disponíveis (top 10):
-${JSON.stringify(imoveisInteresse.rows.map(r => ({ codigo: r.codigo, tipo: r.tipo, bairro: r.bairro, cidade: r.cidade, valor: r.valor_venda || r.valor_locacao })), null, 2)}
+${JSON.stringify(imoveisInteresse.rows.map((r: any) => ({ codigo: r.codigo, tipo: r.tipo, bairro: r.bairro, cidade: r.cidade, valor: r.valor_venda || r.valor_locacao })), null, 2)}
 
 Responda em JSON com:
 {
@@ -350,11 +356,12 @@ function calcularParcela(valor: number, taxa: number, prazo: number, sistema: st
 }
 
 // ─── 4. Assistente Gemini Conversacional ────────────────────────────────────
-export async function assistenteConversar(pool: any, sessionId: string, mensagem: string, contexto: any = {}): Promise<any> {
-  const sessionResult = await pool.query(
-    `SELECT * FROM assistente_sessions WHERE id = $1`,
-    [sessionId]
-  );
+export async function assistenteConversar(pool: any, sessionId: string | null, mensagem: string, contexto: any = {}): Promise<any> {
+  const uuidValido = typeof sessionId === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
+  const sessionResult = uuidValido
+    ? await pool.query(`SELECT * FROM assistente_sessions WHERE id = $1`, [sessionId])
+    : { rows: [] as any[] };
 
   let session: any;
   if (sessionResult.rows.length === 0) {
@@ -394,24 +401,24 @@ Seu papel é ajudar compradores, vendedores e corretores com:
 Responda de forma profissional, clara e útil. Para valores monetários use o formato R$ X.XXX,XX (pt-BR).
 
 Imóveis disponíveis (top 20):
-${JSON.stringify(imoveisRelevantes.rows.map(r => ({
+${JSON.stringify(imoveisRelevantes.rows.map((r: any) => ({
     codigo: r.codigo, titulo: r.titulo, tipo: r.tipo,
     valor: r.valor_venda || r.valor_locacao, bairro: r.bairro, cidade: r.cidade
   })), null, 2)}
 
 Histórico recente da conversa:
-${historico.map(m => `${m.role}: ${m.content}`).join("\n")}
+${historico.map((m: any) => `${m.role}: ${m.content}`).join("\n")}
 
 Agora, responda à mensagem do usuário.`;
 
   const gemAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
   const model = gemAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
     generationConfig: { temperature: 0.7 } as any,
   });
 
   const chat = model.startChat({
-    history: historico.map(m => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] })),
+    history: historico.map((m: any) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] })),
   });
 
   const result = await chat.sendMessage(mensagem);
@@ -548,7 +555,7 @@ Dados:
 - Etapa funil: ${lead.etapa_funil || "N/A"}
 
 Imóveis disponíveis (amostra):
-${JSON.stringify(imoveisResult.rows.slice(0, 10).map(r => ({
+${JSON.stringify(imoveisResult.rows.slice(0, 10).map((r: any) => ({
     valor: r.valor_venda || r.valor_locacao, bairro: r.bairro, cidade: r.cidade
   })), null, 2)}
 
@@ -641,7 +648,7 @@ Imóvel avaliado:
 - Comodidades: ${JSON.stringify(imovel.comodidades || [])}
 
 Imóveis comparáveis na região:
-${JSON.stringify(comparaveis.map(r => ({
+${JSON.stringify(comparaveis.map((r: any) => ({
     valor: r.valor_venda || r.valor_locacao, area: r.area_privativa, quartos: r.quartos,
     bairro: r.bairro, cidade: r.cidade
   })), null, 2)}

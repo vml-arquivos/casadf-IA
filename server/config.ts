@@ -17,6 +17,33 @@ const PREDICAO_SERVICE_URL: string = process.env.PREDICAO_SERVICE_URL || 'http:/
 // localhost:9001. A rota analizar-gemini utiliza este endpoint.
 const GEMINI_API_URL: string = process.env.GEMINI_API_URL || 'http://localhost:9001';
 
+/**
+ * Interrompe a inicialização com uma mensagem clara quando a configuração
+ * mínima do backend não foi fornecida. A validação acontece somente em
+ * runtime, portanto não interfere no `vite build`/`esbuild`.
+ */
+export function validateRuntimeEnv(): void {
+  const errors: string[] = [];
+  const databaseUrl = String(process.env.DATABASE_URL || '').trim();
+  const jwtSecret = String(process.env.JWT_SECRET || '').trim();
+
+  if (!databaseUrl) {
+    errors.push('DATABASE_URL não foi definida');
+  } else if (!/^postgres(?:ql)?:\/\//i.test(databaseUrl)) {
+    errors.push('DATABASE_URL deve começar com postgres:// ou postgresql://');
+  }
+
+  if (!jwtSecret) {
+    errors.push('JWT_SECRET não foi definida');
+  } else if (Buffer.byteLength(jwtSecret, 'utf8') < 32) {
+    errors.push('JWT_SECRET deve ter no mínimo 32 bytes');
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`[config] Configuração inválida:\n- ${errors.join('\n- ')}`);
+  }
+}
+
 export default {
   DATABASE_URL,
   PREDICAO_SERVICE_URL,

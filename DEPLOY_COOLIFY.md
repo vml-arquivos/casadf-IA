@@ -1,5 +1,9 @@
 # Deploy no Coolify — Casa DF Gestão Imobiliária
 
+> **Documento histórico.** O fluxo validado e atualizado em 12/07/2026 está em
+> [`DEPLOY_CASA_DF_PASSO_A_PASSO.md`](DEPLOY_CASA_DF_PASSO_A_PASSO.md). Use o
+> guia novo para banco, variáveis, migrations, volume e primeira inicialização.
+
 ## Visão Geral
 
 Este guia cobre o deploy do **Casa DF** em uma VPS Google Cloud usando o **Coolify** como orquestrador, com **PostgreSQL interno** do Coolify (mesmo projeto Docker).

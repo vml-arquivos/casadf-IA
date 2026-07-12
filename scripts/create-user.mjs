@@ -1,5 +1,5 @@
 /**
- * DESTRAVA CRÉDITO — Criar Colaborador (PostgreSQL Nativo)
+ * CASA DF — Criar Colaborador (PostgreSQL Nativo)
  * ─────────────────────────────────────────────────────────
  * Funciona com o banco PostgreSQL da VPS (sem Supabase).
  *
@@ -27,7 +27,7 @@ function perguntar(rl, pergunta) {
 
 async function main() {
   console.log("\n╔══════════════════════════════════════════╗");
-  console.log("║   DESTRAVA CRÉDITO — Criar Colaborador   ║");
+  console.log("║       CASA DF — Criar Colaborador        ║");
   console.log("╚══════════════════════════════════════════╝\n");
 
   let nome  = process.env.NOME;
@@ -79,7 +79,7 @@ async function main() {
     console.log(`  Email: ${user.email}`);
     console.log(`  Cargo: ${user.cargo}`);
     console.log(`  UUID:  ${user.id}`);
-    console.log(`\n  Acesse: https://${process.env.SITE_DOMAIN || "destravacredito.com"}/colaborador/login\n`);
+    console.log(`\n  Acesse: https://${process.env.SITE_DOMAIN || "casadf.com.br"}/colaborador/login\n`);
   } catch (err) {
     console.error("\n❌ Erro ao criar colaborador:", err.message);
     process.exit(1);

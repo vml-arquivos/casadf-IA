@@ -23,7 +23,20 @@ interface SocioEmpresaContrato {
   data_entrada_sociedade?: string;
 }
 interface Lead     { id: string; nome?: string; razao_social?: string; cpf?: string; cnpj?: string; }
-interface ClientePF { id: string; nome: string; cpf?: string; telefone?: string; cidade?: string; uf?: string; }
+interface ClientePF {
+  id: string;
+  nome: string;
+  cpf?: string;
+  rg?: string;
+  email?: string;
+  telefone?: string;
+  estado_civil?: string;
+  profissao?: string;
+  endereco?: string;
+  cidade?: string;
+  uf?: string;
+  cep?: string;
+}
 interface Parceiro { id: string; nome: string; cpf?: string; }
 interface PrestadorServico {
   id: string;
@@ -614,7 +627,7 @@ export function FormGerarContrato({ onSubmit, loading, userCargo }: Props) {
     onContratadaChange: (v: string) => void;
     responsavelId: string;
     onResponsavelChange: (v: string) => void;
-    errorKey: 'contratadaIdAssessoria' | 'contratadaIdLimpaNome' | 'contratadaIdBacen' | 'contratadaIdRating';
+    errorKey: 'contratadaIdAssessoria' | 'contratadaIdAssessoriaPF' | 'contratadaIdLimpaNome' | 'contratadaIdBacen' | 'contratadaIdRating';
     obrigatoria?: boolean;
   }) => (
     <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 space-y-3">

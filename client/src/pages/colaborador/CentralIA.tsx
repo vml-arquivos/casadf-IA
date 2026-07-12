@@ -158,13 +158,13 @@ function CentralIAContent() {
       </div>
 
       {/* Alerta de pendências jurídicas */}
-      {stats?.analises_juridicas?.pendentes > 0 && (
+      {(stats?.analises_juridicas?.pendentes ?? 0) > 0 && (
         <div className="container mt-6">
           <Card className="border-rose-200 bg-rose-50/50">
             <CardContent className="pt-4 flex items-center gap-3">
               <Scale className="h-5 w-5 text-rose-600" />
               <p className="text-sm text-rose-700">
-                <strong>{stats.analises_juridicas.pendentes}</strong> análise(s) jurídica(s) com necessidade de revisão humana pendente(s).
+                <strong>{stats?.analises_juridicas?.pendentes ?? 0}</strong> análise(s) jurídica(s) com necessidade de revisão humana pendente(s).
               </p>
             </CardContent>
           </Card>

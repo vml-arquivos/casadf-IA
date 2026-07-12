@@ -639,7 +639,7 @@ export default function createOrcamentosOperacoesRouter(pool: Pool) {
       const files = (req.files || []) as Express.Multer.File[];
       if (!files.length) return res.status(400).json({ error: "Nenhum arquivo enviado" });
 
-      const dir = path.resolve("uploads", "orcamentos", id);
+      const dir = path.resolve(process.env.DATA_DIR || "/data", "uploads", "orcamentos", id);
       await fs.promises.mkdir(dir, { recursive: true });
       const inseridos: Row[] = [];
       for (const file of files) {

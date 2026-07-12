@@ -229,7 +229,7 @@ Substitua `JWT_SECRET`, `INTEGRATION_SECRET`, `NEXUS_INTEGRATION_SECRET` e `NEXU
 | Health check 503 | Teste a `DATABASE_URL`, hostname interno e `DATABASE_SSL` |
 | Login 500 | Confirme migrations e usuário na tabela `colaboradores` |
 | Fotos/PDFs somem | Confirme o volume em `/var/data/casadf` |
-| PDF não gera | Confirme `CHROMIUM_PATH=/usr/bin/chromium` e logs do Puppeteer |
+| PDF não gera | Deixe `CHROMIUM_PATH` vazio para usar `@sparticuz/chromium` e verifique os logs do Puppeteer |
 | IA indisponível | Configure Gemini ou OpenAI; o restante do sistema continua operacional |
 | Mapa não aparece | Configure as variáveis `VITE_*` como build variables e faça novo build |
 | CORS bloqueado | Confirme `SITE_DOMAIN` sem protocolo e `FRONTEND_URL` com `https://` |

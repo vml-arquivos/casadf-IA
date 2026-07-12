@@ -1,5 +1,10 @@
 # Casa DF — Gestão Imobiliária
 
+> **Deploy revisado em 12/07/2026:** para uma nova instalação, use primeiro
+> [`DEPLOY_CASA_DF_PASSO_A_PASSO.md`](DEPLOY_CASA_DF_PASSO_A_PASSO.md) e
+> [`ANALISE_TECNICA_CASA_DF.md`](ANALISE_TECNICA_CASA_DF.md). Esses arquivos
+> substituem instruções antigas de implantação que permanecem no histórico.
+
 Este repositório contém a base para o sistema **Casa DF**, uma plataforma completa de gestão imobiliária, construída a partir da arquitetura do Destrava Crédito e adaptada para o mercado de imóveis.
 
 ## Principais recursos

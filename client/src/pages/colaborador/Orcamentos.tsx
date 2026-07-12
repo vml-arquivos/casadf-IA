@@ -488,12 +488,14 @@ export default function Orcamentos() {
         base = await salvar();
         if (!base?.id) return;
       }
+      if (!base?.id) return;
       // Garantir que está finalizado
       if (base.status !== "finalizado") {
         const result = await apiFetch(`/api/orcamentos/${base.id}/finalizar`, { method: "POST" });
         base = result?.orcamento || base;
         setSelecionado(base);
       }
+      if (!base?.id) return;
       const { blob, filename } = await apiFetchBlob(
         `/api/orcamentos/${base.id}/download?t=${Date.now()}`,
       );

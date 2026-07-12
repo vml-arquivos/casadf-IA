@@ -83,9 +83,25 @@ async function main() {
     }
 
     const migDir = join(__dirname, "..", "db", "migrations");
-    const arquivos = readdirSync(migDir)
+    const candidatos = readdirSync(migDir)
       .filter((f) => f.endsWith(".sql") && !/rollback/i.test(f))
       .sort();
+
+    // Quando existe uma variante *_SAFE.sql, ela substitui o arquivo legado
+    // de mesmo nome. Executar os dois repetiria saneamentos destrutivos e pode
+    // reintroduzir exatamente o problema que a variante SAFE corrige.
+    const substituidosPorSafe = new Set(
+      candidatos
+        .filter((f) => /_SAFE\.sql$/i.test(f))
+        .map((f) => f.replace(/_SAFE\.sql$/i, ".sql")),
+    );
+    const arquivos = candidatos.filter(
+      (f) => /_SAFE\.sql$/i.test(f) || !substituidosPorSafe.has(f),
+    );
+
+    for (const ignorado of substituidosPorSafe) {
+      console.log(`⏭️  ${ignorado} substituída pela variante SAFE`);
+    }
 
     for (const arquivo of arquivos) {
       await rodarArquivo(client, join(migDir, arquivo), arquivo);

@@ -1,7 +1,13 @@
 #!/bin/sh
-# DESTRAVA CRÉDITO — Entrypoint Docker
-# Inicia o servidor apenas.
-# Migração de banco deve ser executada manualmente via:
-#   docker exec -it <container> node scripts/migrate-db.mjs
+# CASA DF — Entrypoint Docker
+# Valida as variáveis e, quando autorizado explicitamente, prepara um banco novo.
 set -e
+
+node scripts/validate-env.mjs
+
+if [ "${RUN_MIGRATIONS_ON_START:-false}" = "true" ]; then
+  echo "[casadf] Executando migrações antes de iniciar..."
+  node scripts/migrate-all.mjs
+fi
+
 exec "$@"

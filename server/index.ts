@@ -6,6 +6,7 @@ import fs from "fs";
 import crypto from "crypto";
 import multer from "multer";
 import { createPool } from "./db.ts";
+import { validateRuntimeEnv } from "./config.ts";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { auth } from "./middleware/auth.ts";
@@ -44,10 +45,13 @@ import {
   gerarRelatorioInteligente,
 } from "./services/ia-imobiliaria.ts";
 
-const { Pool } = pkg;
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+validateRuntimeEnv();
+
+const dataDir = path.resolve(process.env.DATA_DIR || "/data");
+const uploadsPath = (...segments: string[]) => path.join(dataDir, "uploads", ...segments);
 
 // ─── PostgreSQL Pool ─────────────────────────────────────────────────────────
 // Pool centralizado com SSL automático para Supabase e outros bancos externos.
@@ -1754,7 +1758,7 @@ async function startServer() {
 
   // CORS
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const siteDomain = process.env.SITE_DOMAIN || "destravacredito.com";
+    const siteDomain = process.env.SITE_DOMAIN || "casadf.com.br";
     const allowedOrigins = [
       `https://${siteDomain}`,
       `http://${siteDomain}`,
@@ -1784,8 +1788,8 @@ async function startServer() {
   app.get("/api/health", async (_req: Request, res: Response) => {
     let dbOk = false;
     try { await pool.query("SELECT 1"); dbOk = true; } catch { /* ignore */ }
-    res.json({
-      status: "ok",
+    res.status(dbOk ? 200 : 503).json({
+      status: dbOk ? "ok" : "error",
       timestamp: new Date().toISOString(),
       version: "4.0.0",
       db: dbOk ? "connected" : "error",
@@ -3491,6 +3495,10 @@ async function startServer() {
 
   app.post("/api/admin/sql", auth, authorize(["Administrador"]), async (req: Request, res: Response) => {
     try {
+      if (String(process.env.ENABLE_ADMIN_SQL || "false").toLowerCase() !== "true") {
+        res.status(404).json({ error: "Rota administrativa desabilitada" });
+        return;
+      }
       const { query } = req.body;
       if (!query || typeof query !== "string") {
         res.status(400).json({ error: "Query inválida" });
@@ -4293,8 +4301,7 @@ async function startServer() {
         return;
       }
 
-      const dataDir = process.env.DATA_DIR || "/data";
-      const uploadDir = path.join(dataDir, "uploads", "empresas", req.params.id);
+      const uploadDir = uploadsPath("empresas", req.params.id);
       await fs.promises.mkdir(uploadDir, { recursive: true });
 
       const ext = path.extname(file.originalname || "");
@@ -4425,8 +4432,7 @@ async function startServer() {
         res.status(400).json({ error: "Tipo de documento não permitido aqui. Use: " + tiposPermitidos.join(", ") }); return;
       }
 
-      const dataDir = process.env.DATA_DIR || "/var/data/destrava";
-      const uploadDir = path.join(dataDir, "uploads", "documentos", "empresa", empresaId);
+      const uploadDir = uploadsPath("documentos", "empresa", empresaId);
       await fs.promises.mkdir(uploadDir, { recursive: true });
 
       const ext = path.extname(file.originalname || "").toLowerCase();
@@ -7059,7 +7065,7 @@ ${(temTest1 || temTest2) ? `
   }
 
     async function gerarPdfContrato(payload: any): Promise<string> {
-    const uploadsDir = path.resolve('uploads', 'contratos');
+    const uploadsDir = uploadsPath('contratos');
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
     const html = await gerarHtmlContrato(payload);
@@ -7386,7 +7392,7 @@ ${(temTest1 || temTest2) ? `
       const html = gerarHtmlPrevisaoFaturamento(htmlPayload);
 
       // Gerar PDF via Puppeteer
-      const uploadsDir = path.resolve('uploads', 'previsoes');
+      const uploadsDir = uploadsPath('previsoes');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       const fileName = `previsao-${id}-${Date.now()}.pdf`;
       const filePath = path.join(uploadsDir, fileName);
@@ -7776,7 +7782,7 @@ ${(temTest1 || temTest2) ? `
       });
 
       const fileName = `declaracao-${crypto.randomUUID()}.pdf`;
-      const uploadsDir = path.resolve('uploads', 'declaracoes');
+      const uploadsDir = uploadsPath('declaracoes');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       const filePath = path.join(uploadsDir, fileName);
 
@@ -8588,7 +8594,7 @@ async function registrarDocumentoContratoGerado(params: {
 
         aplicarIdentificacaoContrato(payloadLN, await gerarIdentificacaoContrato('limpa_nome', payloadLN));
         const htmlLN = await gerarHtmlContratoLimpaNome(payloadLN);
-        const uploadsDir2 = path.resolve('uploads', 'contratos');
+        const uploadsDir2 = uploadsPath('contratos');
         if (!fs.existsSync(uploadsDir2)) fs.mkdirSync(uploadsDir2, { recursive: true });
         const fileNameLN = `${nomeArquivoSeguroContrato(payloadLN.contrato?.protocolo_contrato, 'contrato-limpa-nome')}.pdf`;
         const filePathLN = path.join(uploadsDir2, fileNameLN);
@@ -8749,7 +8755,7 @@ async function registrarDocumentoContratoGerado(params: {
         };
         aplicarIdentificacaoContrato(payloadBacen, await gerarIdentificacaoContrato('limpa_bacen', payloadBacen));
         const htmlBacen = await gerarHtmlContratoBacen(payloadBacen);
-        const uploadsDir3 = path.resolve('uploads', 'contratos');
+        const uploadsDir3 = uploadsPath('contratos');
         if (!fs.existsSync(uploadsDir3)) fs.mkdirSync(uploadsDir3, { recursive: true });
         const fileNameBacen = `${nomeArquivoSeguroContrato(payloadBacen.contrato?.protocolo_contrato, 'contrato-limpa-bacen')}.pdf`;
         const filePathBacen = path.join(uploadsDir3, fileNameBacen);
@@ -8847,7 +8853,7 @@ async function registrarDocumentoContratoGerado(params: {
         };
         aplicarIdentificacaoContrato(payloadRating, await gerarIdentificacaoContrato('rating', payloadRating));
         const htmlRating = await gerarHtmlContratoRating(payloadRating);
-        const uploadsDir4 = path.resolve('uploads', 'contratos');
+        const uploadsDir4 = uploadsPath('contratos');
         if (!fs.existsSync(uploadsDir4)) fs.mkdirSync(uploadsDir4, { recursive: true });
         const fileNameRating = `${nomeArquivoSeguroContrato(payloadRating.contrato?.protocolo_contrato, 'contrato-rating')}.pdf`;
         const filePathRating = path.join(uploadsDir4, fileNameRating);
@@ -8928,7 +8934,7 @@ async function registrarDocumentoContratoGerado(params: {
         };
         aplicarIdentificacaoContrato(payloadParceria, await gerarIdentificacaoContrato('parceria_comercial', payloadParceria));
         const htmlParceria = await gerarHtmlContratoParceriaComercial(payloadParceria);
-        const uploadsDir5 = path.resolve('uploads', 'contratos');
+        const uploadsDir5 = uploadsPath('contratos');
         if (!fs.existsSync(uploadsDir5)) fs.mkdirSync(uploadsDir5, { recursive: true });
         const fileNameParceria = `${nomeArquivoSeguroContrato(payloadParceria.contrato?.protocolo_contrato, 'contrato-parceria')}.pdf`;
         const filePathParceria = path.join(uploadsDir5, fileNameParceria);
@@ -9054,7 +9060,7 @@ async function registrarDocumentoContratoGerado(params: {
 
         aplicarIdentificacaoContrato(payloadPF, await gerarIdentificacaoContrato('assessoria_pf', payloadPF));
         const htmlPF = await gerarHtmlContratoAssessoriaPF(payloadPF);
-        const uploadsDirPF = path.resolve('uploads', 'contratos');
+        const uploadsDirPF = uploadsPath('contratos');
         if (!fs.existsSync(uploadsDirPF)) fs.mkdirSync(uploadsDirPF, { recursive: true });
         const fileNamePF = `${nomeArquivoSeguroContrato(payloadPF.contrato?.protocolo_contrato, 'contrato-assessoria-pf')}.pdf`;
         const filePathPF = path.join(uploadsDirPF, fileNamePF);
@@ -9354,12 +9360,12 @@ async function registrarDocumentoContratoGerado(params: {
         candidatos.push(path.resolve(contrato.pdf_path));
         candidatos.push(path.join('/app/uploads/contratos', path.basename(contrato.pdf_path)));
         candidatos.push(path.join('/app/uploads', path.basename(contrato.pdf_path)));
-        candidatos.push(path.join('/var/data/destrava', path.basename(contrato.pdf_path)));
+        candidatos.push(path.join(dataDir, path.basename(contrato.pdf_path)));
         if (process.env.DATA_DIR) {
           candidatos.push(path.join(process.env.DATA_DIR, path.basename(contrato.pdf_path)));
         }
       }
-      candidatos.push(path.join(path.resolve('uploads', 'contratos'), `contrato-${req.params.id}.pdf`));
+      candidatos.push(path.join(uploadsPath('contratos'), `contrato-${req.params.id}.pdf`));
 
       let filePath: string | null = null;
       for (const c of candidatos) {
@@ -9557,7 +9563,7 @@ async function registrarDocumentoContratoGerado(params: {
       case 'parceria_comercial': html = await gerarHtmlContratoParceriaComercial(payload); break;
       default: html = await gerarHtmlContrato(payload); break;
     }
-    const uploadsDir = path.resolve('uploads', 'contratos');
+    const uploadsDir = uploadsPath('contratos');
     if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
     const fileName = `${nomeArquivoSeguroContrato(payload?.contrato?.protocolo_contrato, `contrato-${contrato.tipo_contrato || 'gerado'}`)}.pdf`;
     const pdfPath = path.join(uploadsDir, fileName);
@@ -9637,7 +9643,7 @@ async function registrarDocumentoContratoGerado(params: {
       const conteudo = arquivo_base64 || pdf_base64;
       if (!conteudo) { res.status(400).json({ error: 'Informe o PDF assinado em base64.' }); return; }
       const base64 = String(conteudo).includes(',') ? String(conteudo).split(',').pop()! : String(conteudo);
-      const uploadsDir = path.resolve('uploads', 'contratos', 'assinados');
+      const uploadsDir = uploadsPath('contratos', 'assinados');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       const fileName = `${crypto.randomUUID()}-${String(nome_arquivo || 'contrato-assinado.pdf').replace(/[^a-zA-Z0-9_.-]/g, '-')}`;
       const pdfPath = path.join(uploadsDir, fileName);
@@ -9697,14 +9703,14 @@ async function registrarDocumentoContratoGerado(params: {
   });
 
   // Servir arquivos de contratos gerados e contratos sociais enviados
-  app.use('/uploads/contratos', express.static(path.resolve('uploads', 'contratos')));
-  app.use('/uploads/contratos-sociais', express.static(path.join(process.env.DATA_DIR || '/data', 'uploads', 'contratos-sociais')));
-  app.use('/uploads/empresas', express.static(path.resolve('uploads', 'empresas')));
-  app.use('/uploads/imoveis', express.static(path.join(process.env.DATA_DIR || '/data', 'uploads', 'imoveis')));
-  app.use('/uploads/imobiliarias', express.static(path.join(process.env.DATA_DIR || '/data', 'uploads', 'imobiliarias')));
-  app.use('/uploads/corretores', express.static(path.join(process.env.DATA_DIR || '/data', 'uploads', 'corretores')));
-  app.use('/uploads/orcamentos', express.static(path.resolve('uploads', 'orcamentos')));
-  app.use('/uploads/documentos', express.static(path.join(process.env.DATA_DIR || '/var/data/destrava', 'uploads', 'documentos')));
+  app.use('/uploads/contratos', express.static(uploadsPath('contratos')));
+  app.use('/uploads/contratos-sociais', express.static(uploadsPath('contratos-sociais')));
+  app.use('/uploads/empresas', express.static(uploadsPath('empresas')));
+  app.use('/uploads/imoveis', express.static(uploadsPath('imoveis')));
+  app.use('/uploads/imobiliarias', express.static(uploadsPath('imobiliarias')));
+  app.use('/uploads/corretores', express.static(uploadsPath('corretores')));
+  app.use('/uploads/orcamentos', express.static(uploadsPath('orcamentos')));
+  app.use('/uploads/documentos', express.static(uploadsPath('documentos')));
 
   app.patch('/api/me', auth, async (req: Request, res: Response) => {
     try {
@@ -10765,7 +10771,7 @@ async function registrarDocumentoContratoGerado(params: {
         geradoPor: colaborador?.nome || colaborador?.email || null,
       });
 
-      const uploadsDir = path.resolve("uploads", "acompanhamento-bancario");
+      const uploadsDir = uploadsPath("acompanhamento-bancario");
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
       const slugEmpresa = String(acompanhamento.nome_empresa || "empresa")
@@ -12522,7 +12528,7 @@ async function registrarDocumentoContratoGerado(params: {
         saldosDiarios: saldos,
         geradoPor,
       });
-      const uploadsDir = path.resolve('uploads', 'acompanhamento-financeiro');
+      const uploadsDir = uploadsPath('acompanhamento-financeiro');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       const fileName = `acomp-financeiro-${id}-${Date.now()}.pdf`;
       const filePath = path.join(uploadsDir, fileName);
@@ -13155,7 +13161,10 @@ ${canal === "whatsapp"
     try {
       const { session_id, mensagem, contexto } = req.body;
       if (!mensagem) return res.status(400).json({ error: "mensagem obrigatória" });
-      const resultado = await assistenteConversar(pool, session_id || "public", mensagem, contexto || {});
+      const resultado = await assistenteConversar(pool, session_id || null, mensagem, {
+        ...(contexto || {}),
+        is_publica: true,
+      });
       res.json(resultado);
     } catch (err: any) {
       console.error("[POST /api/ia/assistente]", err);
@@ -13227,10 +13236,10 @@ ${canal === "whatsapp"
       if (!lead_id) return res.status(400).json({ error: "lead_id obrigatório" });
       const resultado = await analisarFinanceiro(pool, {
         lead_id,
-        imovel_id: imovel_id || null,
-        renda_mensal: Number(renda_mensal) || null,
+        imovel_id: imovel_id || undefined,
+        renda_mensal: Number(renda_mensal) || undefined,
         compromissos_mensais: Number(compromissos_mensais) || 0,
-        colaborador_id: (req as any).user?.id || null,
+        colaborador_id: (req as any).user?.id || undefined,
       });
       res.json(resultado);
     } catch (err: any) {
