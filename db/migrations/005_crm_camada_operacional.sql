@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.crm_caixas (
                     CHECK (canal IN ('whatsapp','email','telefone','chat','formulario','outro')),
   ativo           BOOLEAN     NOT NULL DEFAULT TRUE,
   ia_ativa        BOOLEAN     NOT NULL DEFAULT FALSE,
-  ia_agente_id    UUID        REFERENCES public.ia_agentes(id) ON DELETE SET NULL,
+  ia_agente_id    UUID,  -- FK será adicionado por migration 000 (ia_agentes)
   responsavel_id  UUID        REFERENCES public.colaboradores(id) ON DELETE SET NULL,
   cor             TEXT        DEFAULT '#3B82F6',
   icone           TEXT        DEFAULT 'inbox',
