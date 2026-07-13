@@ -20,7 +20,6 @@
 -- Idempotente: seguro para reexecutar.
 -- ============================================================
 
-BEGIN;
 
 -- ─── Campos de IA já referenciados pelo servidor ─────────────
 ALTER TABLE public.leads
@@ -65,7 +64,6 @@ ALTER TABLE public.triagem_leads
 ALTER TABLE public.triagem_leads
   ADD COLUMN IF NOT EXISTS ia_pausada_ate   TIMESTAMPTZ;
 
-COMMIT;
 
 DO $$
 BEGIN

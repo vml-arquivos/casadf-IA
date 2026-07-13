@@ -19,7 +19,6 @@ ALTER TYPE contrato_imobiliario_tipo ADD VALUE IF NOT EXISTS 'assessoria_venda_s
 ALTER TYPE contrato_imobiliario_tipo ADD VALUE IF NOT EXISTS 'avaliacao_imovel';
 ALTER TYPE contrato_imobiliario_tipo ADD VALUE IF NOT EXISTS 'aluguel';
 
-BEGIN;
 
 -- ── Tabela: imobiliarias (multi-imobiliária, para uso futuro) ──────────────
 CREATE TABLE IF NOT EXISTS imobiliarias (
@@ -94,4 +93,3 @@ WHERE imobiliaria_id IS NULL;
 UPDATE imoveis SET imobiliaria_id = (SELECT id FROM imobiliarias WHERE padrao = TRUE LIMIT 1)
 WHERE imobiliaria_id IS NULL;
 
-COMMIT;

@@ -2,7 +2,6 @@
 -- Correção cirúrgica para erro 500 em POST /api/empresas/:id/socios/bulk
 -- Garante tabela/base mínima usada pelo backend sem quebrar dados existentes.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -11,7 +10,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS public.socios_empresa (
@@ -46,4 +44,3 @@ BEGIN
   END IF;
 END $$;
 
-COMMIT;

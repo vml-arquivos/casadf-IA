@@ -2,7 +2,6 @@
 -- Sistema Destrava Crédito
 -- Execute antes do deploy da versão que usa a nova regra de cadastros.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -275,4 +274,3 @@ BEGIN
   END IF;
 END $$;
 
-COMMIT;

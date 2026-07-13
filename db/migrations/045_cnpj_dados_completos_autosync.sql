@@ -1,7 +1,6 @@
 -- Migration 045 — CNPJ completo, capital social correto e sincronização robusta
 -- Idempotente. Pode ser executada mais de uma vez.
 
-BEGIN;
 
 ALTER TABLE public.empresas
   ADD COLUMN IF NOT EXISTS inscricao_estadual TEXT,
@@ -62,4 +61,3 @@ ON public.empresas (regexp_replace(COALESCE(cnpj, ''), '[^0-9]', '', 'g'));
 CREATE INDEX IF NOT EXISTS idx_empresas_ultima_sincronizacao_receita
 ON public.empresas (ultima_sincronizacao_receita DESC);
 
-COMMIT;

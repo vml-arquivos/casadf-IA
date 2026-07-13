@@ -1,7 +1,6 @@
 -- Migration 020: módulo completo de contratos, parceiros, responsáveis e usuários
 -- Idempotente: não apaga dados, não renomeia tabelas e usa apenas ADD COLUMN/CREATE TABLE/CREATE INDEX se necessário.
 
-BEGIN;
 
 -- Parceiros/contratadas/prestadores: mantém a tabela histórica e adiciona campos de cadastro, identidade visual e PDF.
 CREATE TABLE IF NOT EXISTS public.prestadores_servico (
@@ -124,4 +123,3 @@ ALTER TABLE public.colaboradores ADD COLUMN IF NOT EXISTS reset_senha_expira_em 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_colaboradores_email_lower_unique ON public.colaboradores(LOWER(email));
 CREATE INDEX IF NOT EXISTS idx_colaboradores_reset_senha ON public.colaboradores(reset_senha_solicitado_em) WHERE reset_senha_solicitado_em IS NOT NULL;
 
-COMMIT;

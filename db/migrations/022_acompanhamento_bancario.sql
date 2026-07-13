@@ -139,7 +139,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_acomp_banc_updated ON acompanhamentos_bancarios;

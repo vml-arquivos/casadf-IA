@@ -1,4 +1,3 @@
-BEGIN;
 
 ALTER TABLE public.socios_empresa
   ADD COLUMN IF NOT EXISTS cpfcnpj_consultado_at TIMESTAMPTZ,
@@ -15,4 +14,3 @@ CREATE INDEX IF NOT EXISTS idx_socios_empresa_cpfcnpj_consultado_at
 CREATE INDEX IF NOT EXISTS idx_socios_empresa_cpf_completo_manual_digits
   ON public.socios_empresa ((regexp_replace(COALESCE(cpf_completo_manual, ''), '\D', '', 'g')));
 
-COMMIT;

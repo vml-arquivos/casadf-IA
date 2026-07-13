@@ -4,7 +4,6 @@
 -- visibilidade sem substituir a lógica legada baseada em cargo.
 -- ============================================================
 
-BEGIN;
 
 ALTER TABLE public.colaboradores
   ADD COLUMN IF NOT EXISTS perfil TEXT,
@@ -60,4 +59,3 @@ CREATE INDEX IF NOT EXISTS idx_colaboradores_pode_ver_todos_leads
   ON public.colaboradores(pode_ver_todos_leads)
   WHERE pode_ver_todos_leads = TRUE;
 
-COMMIT;

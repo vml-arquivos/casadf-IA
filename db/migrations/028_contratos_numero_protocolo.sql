@@ -5,7 +5,6 @@
 -- - código do tipo do contrato
 -- - sequencial global
 
-BEGIN;
 
 CREATE SEQUENCE IF NOT EXISTS public.contratos_gerados_sequencial_global_seq
   START WITH 1
@@ -125,4 +124,3 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_contratos_protocolo_contrato_unique
 CREATE INDEX IF NOT EXISTS idx_contratos_codigo_tipo_contrato
   ON public.contratos_gerados(codigo_tipo_contrato);
 
-COMMIT;

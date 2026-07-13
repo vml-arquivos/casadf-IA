@@ -3,7 +3,6 @@
 -- e enriquecer crm_conversas com metadados de sincronismo sem alterar o fluxo atual.
 -- Idempotente: seguro para reexecução.
 
-BEGIN;
 
 ALTER TABLE public.colaboradores
   ADD COLUMN IF NOT EXISTS chatwoot_agente_id INTEGER;
@@ -61,4 +60,3 @@ LEFT JOIN public.leads l ON l.id = c.lead_id
 LEFT JOIN public.crm_caixas cx ON cx.id = c.caixa_id
 LEFT JOIN public.colaboradores col ON col.id = c.agente_responsavel_id;
 
-COMMIT;

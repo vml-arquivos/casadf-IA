@@ -4,7 +4,6 @@
 -- Comando: psql $DATABASE_URL < db/migrations/060_fix_urgente_atualizacao_semanal.sql
 -- Idempotente: seguro para rodar N vezes.
 -- ============================================================
-BEGIN;
 
 -- ── Tabela principal de atualizações semanais ─────────────────────────────────
 ALTER TABLE acompanhamento_bancario_atualizacoes
@@ -114,7 +113,6 @@ SET acesso_acompanhamento_financeiro = TRUE
 WHERE LOWER(TRIM(COALESCE(cargo,'')))  IN ('administrador','admin','diretor','gestor_credito','gestor de credito')
    OR LOWER(TRIM(COALESCE(perfil,''))) IN ('administrador','admin','diretor','gestor_credito','gestor de credito');
 
-COMMIT;
 
 -- Verificação final
 SELECT

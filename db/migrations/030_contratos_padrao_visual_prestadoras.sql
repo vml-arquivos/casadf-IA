@@ -4,7 +4,6 @@
 -- Também garante as colunas visuais usadas pelo PDF, caso o banco ainda não tenha recebido
 -- os ALTER TABLE executados pelo backend.
 
-BEGIN;
 
 ALTER TABLE public.prestadores_servico
   ADD COLUMN IF NOT EXISTS logo_url TEXT;
@@ -53,4 +52,3 @@ UPDATE public.prestadores_servico
     OR lower(COALESCE(razao_social, nome_fantasia, nome, '')) LIKE '%permupay%'
     OR lower(COALESCE(razao_social, nome_fantasia, nome, '')) LIKE '%permu pay%';
 
-COMMIT;

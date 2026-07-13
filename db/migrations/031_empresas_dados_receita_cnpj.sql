@@ -2,7 +2,6 @@
 -- Corrige cadastro de empresas e adiciona armazenamento completo de dados públicos da Receita/BrasilAPI.
 -- Idempotente: pode rodar mais de uma vez com segurança.
 
-BEGIN;
 
 -- Extensões necessárias para gen_random_uuid(), caso ainda não existam.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -34,4 +33,3 @@ CREATE INDEX IF NOT EXISTS idx_empresas_situacao_cadastral ON public.empresas(de
 CREATE INDEX IF NOT EXISTS idx_empresas_qsa_gin ON public.empresas USING GIN (qsa);
 CREATE INDEX IF NOT EXISTS idx_empresas_dados_receita_gin ON public.empresas USING GIN (dados_receita);
 
-COMMIT;

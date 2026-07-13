@@ -7,7 +7,6 @@
 -- Rode com: psql "$DATABASE_URL" -f db/migrations/068_imoveis_crm_completo.sql
 -- ============================================================================
 
-BEGIN;
 
 -- ── ENUM: finalidade e status do imóvel ─────────────────────────────────────
 DO $$ BEGIN
@@ -210,7 +209,6 @@ CREATE INDEX IF NOT EXISTS idx_contratos_imob_imovel  ON contratos_imobiliarios(
 
 CREATE SEQUENCE IF NOT EXISTS contratos_imobiliarios_numero_seq START 1;
 
-COMMIT;
 
 -- ============================================================================
 -- Verificação pós-migração (SELECT apenas — sem efeitos colaterais)

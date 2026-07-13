@@ -2,7 +2,6 @@
 -- Sistema Destrava Crédito
 -- Prepara clientes_pf para aparecerem na tela unificada de Clientes com origem, canal e usuário cadastrador.
 
-BEGIN;
 
 ALTER TABLE clientes_pf
   ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT 'painel_interno',
@@ -37,4 +36,3 @@ CREATE INDEX IF NOT EXISTS idx_clientes_pf_origem ON clientes_pf (origem);
 CREATE INDEX IF NOT EXISTS idx_clientes_pf_cadastrado_por ON clientes_pf (cadastrado_por);
 CREATE INDEX IF NOT EXISTS idx_clientes_pf_created_at ON clientes_pf (created_at DESC);
 
-COMMIT;

@@ -11,7 +11,6 @@
 -- Idempotente: seguro para reexecutar.
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Verificar se etapa_funil ainda é enum e converter para TEXT ─────────
 DO $$
@@ -143,7 +142,6 @@ BEGIN
   END IF;
 
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_leads_movimentacao_funil
@@ -256,4 +254,3 @@ CREATE INDEX IF NOT EXISTS idx_crm_logs_lead_id
 CREATE INDEX IF NOT EXISTS idx_crm_logs_usuario_id
   ON public.crm_logs (usuario_id, created_at DESC);
 
-COMMIT;

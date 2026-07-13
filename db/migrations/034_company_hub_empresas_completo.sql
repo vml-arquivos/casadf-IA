@@ -2,7 +2,6 @@
 -- Enriquecimento definitivo da página Empresas / Company Hub.
 -- Idempotente: pode rodar mais de uma vez sem quebrar produção.
 
-BEGIN;
 
 ALTER TABLE public.empresas
   ADD COLUMN IF NOT EXISTS natureza_juridica TEXT,
@@ -29,4 +28,3 @@ CREATE INDEX IF NOT EXISTS idx_empresas_cnpj ON public.empresas(cnpj);
 CREATE INDEX IF NOT EXISTS idx_empresas_natureza_juridica ON public.empresas(natureza_juridica);
 CREATE INDEX IF NOT EXISTS idx_empresas_cnae_principal ON public.empresas(cnae_principal);
 
-COMMIT;

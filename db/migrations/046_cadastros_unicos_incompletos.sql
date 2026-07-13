@@ -1,7 +1,6 @@
 -- Migration 046 — Cadastros únicos, obrigatoriedade de CPF/CNPJ e área de incompletos
 -- Sistema Destrava Crédito
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -292,4 +291,3 @@ WHERE length(regexp_replace(COALESCE(cpf_cnpj,''), '\D', '', 'g')) IN (11,14)
 CREATE INDEX IF NOT EXISTS idx_leads_cadastro_status ON leads (cadastro_status);
 CREATE INDEX IF NOT EXISTS idx_leads_cadastro_completo ON leads (cadastro_completo, bloqueado_operacional);
 
-COMMIT;

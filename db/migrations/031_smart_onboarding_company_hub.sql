@@ -2,7 +2,6 @@
 -- Refatoração Crítica: Smart Onboarding e Company Hub
 -- Idempotente (IF NOT EXISTS) para não quebrar funcionalidades anteriores
 
-BEGIN;
 
 -- 1. Enriquecer tabela clientes (no nosso banco é 'empresas')
 -- A instrução diz "tabela clientes", mas no esquema atual o nome é 'empresas'.
@@ -70,4 +69,3 @@ BEGIN
   END IF;
 END $$;
 
-COMMIT;

@@ -4,7 +4,6 @@
 -- sem perder dados e sem quebrar leituras existentes.
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Criar enum canônico do funil ──────────────────────────
 DO $$ BEGIN
@@ -57,7 +56,6 @@ SET etapa_funil = CASE LOWER(BTRIM(etapa_funil))
   WHEN 'reativacao' THEN 'reativacao'
   WHEN 'carteira' THEN 'carteira'
   ELSE 'entrada'
-END;
 
 -- ─── 4. Remover check antigo sobre etapa_funil, se existir ────
 DO $$
@@ -233,4 +231,3 @@ FROM etapas e
 LEFT JOIN contagens c ON c.etapa_funil = e.etapa
 ORDER BY e.ordem;
 
-COMMIT;

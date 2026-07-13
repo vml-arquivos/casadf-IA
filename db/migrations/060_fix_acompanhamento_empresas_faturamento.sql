@@ -7,7 +7,6 @@
 --   2. Tela de faturamento não mostrando empresas do acompanhamento
 --   3. Semana do acompanhamento não salvando (schema de compensacoes_historico incompleto)
 -- ============================================================
-BEGIN;
 
 -- ── 1. Garantir colunas novas na acompanhamento_compensacoes_historico ────────
 -- O INSERT do backend usa estas colunas que podem não existir em instâncias
@@ -128,5 +127,4 @@ WHERE EXISTS (
 )
 AND COALESCE(e.bloqueado_operacional, FALSE) = TRUE;
 
-COMMIT;
 -- ── FIM DA MIGRATION 060 ──────────────────────────────────────────────────────

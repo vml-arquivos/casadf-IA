@@ -25,7 +25,6 @@
 -- Idempotente: seguro para reexecutar.
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Normalizar etapa_funil existente para minúsculas ─────
 UPDATE public.leads
@@ -145,7 +144,6 @@ SELECT
 FROM public.vw_crm_pipeline
 GROUP BY etapa_funil, temperatura;
 
-COMMIT;
 
 -- ─── Verificação ──────────────────────────────────────────────
 SELECT etapa_funil, COUNT(*) AS total

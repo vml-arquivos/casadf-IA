@@ -177,7 +177,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.atualizacao_em = NOW();
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_documentacao_blocos_atualizacao_em ON public.documentacao_blocos;

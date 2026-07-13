@@ -1,7 +1,6 @@
 -- MIGRAÇÃO 015 — Reconciliação retroativa de ownership via Chatwoot
 -- Atualiza leads.responsavel_id com base no agente mais recente por lead em crm_conversas.
 
-BEGIN;
 
 UPDATE leads l
 SET responsavel_id = c.agente_responsavel_id,
@@ -22,4 +21,3 @@ WHERE l.id = c.lead_id
     OR l.responsavel_id <> c.agente_responsavel_id
   );
 
-COMMIT;

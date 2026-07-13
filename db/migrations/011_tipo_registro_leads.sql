@@ -4,7 +4,6 @@
 -- os contratos atuais de API nem reescrever os fluxos existentes.
 -- ============================================================
 
-BEGIN;
 
 ALTER TABLE public.leads
   ADD COLUMN IF NOT EXISTS tipo_registro TEXT DEFAULT 'lead';
@@ -38,4 +37,3 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_leads_tipo_registro
   ON public.leads(tipo_registro);
 
-COMMIT;

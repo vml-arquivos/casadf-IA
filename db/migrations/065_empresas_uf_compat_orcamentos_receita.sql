@@ -35,7 +35,6 @@ BEGIN
   END IF;
 
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_empresas_estado_uf_sync ON public.empresas;

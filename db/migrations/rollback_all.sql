@@ -7,7 +7,6 @@
 -- pois dados inseridos nas novas tabelas serão PERDIDOS.
 -- ============================================================
 
-BEGIN;
 
 -- ─── 008: Dashboards e visibilidade por perfil ───────────────
 DROP VIEW IF EXISTS public.vw_leads_por_responsavel;
@@ -127,7 +126,6 @@ ALTER TABLE public.leads
 -- perder os dados de triagem.
 -- DROP TABLE IF EXISTS public.triagem_leads CASCADE;
 
-COMMIT;
 
 DO $$
 BEGIN

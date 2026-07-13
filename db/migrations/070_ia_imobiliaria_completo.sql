@@ -7,7 +7,6 @@
 -- Padrão: idempotente, sem DELETE destrutivo, tudo em transação.
 -- ============================================================================
 
-BEGIN;
 
 -- ── ENUMS ─────────────────────────────────────────────────────────────────────
 DO $$ BEGIN
@@ -212,4 +211,3 @@ CREATE TABLE IF NOT EXISTS relatorios_inteligentes (
 CREATE INDEX IF NOT EXISTS idx_relatorios_tipo ON relatorios_inteligentes(tipo);
 CREATE INDEX IF NOT EXISTS idx_relatorios_periodo ON relatorios_inteligentes(periodo_inicio, periodo_fim);
 
-COMMIT;

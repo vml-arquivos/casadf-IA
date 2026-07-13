@@ -10,7 +10,6 @@
 --     psql -U postgres -d postgres -f /tmp/032_socios_empresa_completo.sql
 -- ============================================================
 
-BEGIN;
 
 \echo '── Garantir função set_updated_at (caso não exista) ─────────'
 CREATE OR REPLACE FUNCTION public.set_updated_at()
@@ -18,7 +17,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 \echo '── Expandir socios_empresa ──────────────────────────────────'
@@ -105,7 +103,6 @@ ALTER TABLE public.socios_empresa DISABLE ROW LEVEL SECURITY;
 -- Permissões
 GRANT ALL PRIVILEGES ON public.socios_empresa TO postgres;
 
-COMMIT;
 
 \echo ''
 \echo '── Validação ────────────────────────────────────────────────'

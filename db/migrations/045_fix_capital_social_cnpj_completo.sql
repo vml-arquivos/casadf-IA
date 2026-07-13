@@ -3,7 +3,6 @@
 -- Ex.: "50000.00" não pode virar 5.000.000,00.
 -- Também garante colunas usadas pela página completa de Empresas/CNPJ.
 
-BEGIN;
 
 ALTER TABLE public.empresas
   ADD COLUMN IF NOT EXISTS natureza_juridica TEXT,
@@ -58,4 +57,3 @@ CREATE INDEX IF NOT EXISTS idx_empresas_capital_social ON public.empresas(capita
 CREATE INDEX IF NOT EXISTS idx_empresas_cnae_principal ON public.empresas(cnae_principal) WHERE cnae_principal IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_empresas_dados_extra_receita_gin ON public.empresas USING GIN (dados_extra_receita);
 
-COMMIT;

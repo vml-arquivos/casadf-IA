@@ -3,7 +3,6 @@
 -- dados cadastrais já sincronizados no cadastro de Empresas.
 -- Idempotente e seguro para produção: não apaga nem reseta dados.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -52,4 +51,3 @@ CREATE INDEX IF NOT EXISTS idx_acompanhamentos_bancarios_cnpj_digits
   ON public.acompanhamentos_bancarios((regexp_replace(COALESCE(cnpj, ''), '[^0-9]', '', 'g')))
   WHERE cnpj IS NOT NULL;
 
-COMMIT;

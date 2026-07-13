@@ -83,7 +83,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DO $$
@@ -103,7 +102,6 @@ BEGIN
   SET ultima_interacao_em = NEW.created_at 
   WHERE id = NEW.conversa_id;
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DO $$

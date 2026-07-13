@@ -23,7 +23,6 @@
 -- Idempotente: seguro para reexecutar.
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Colunas em crm_conversas ─────────────────────────────
 ALTER TABLE public.crm_conversas
@@ -79,7 +78,6 @@ BEGIN
   ORDER BY created_at ASC
   LIMIT 1;
   RETURN v_caixa_id;
-END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- ─── 5. Função: controlar IA por caixa ───────────────────────
@@ -117,7 +115,6 @@ BEGIN
   END IF;
 
   RETURN TRUE;
-END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- ─── 6. View: conversas ativas por agente ────────────────────
@@ -162,7 +159,6 @@ LEFT JOIN public.crm_conversas c ON c.caixa_id = cx.id
   AND c.status NOT IN ('resolvida', 'arquivada')
 GROUP BY cx.id, cx.nome, cx.canal, cx.ia_ativa;
 
-COMMIT;
 
 DO $$
 BEGIN

@@ -25,7 +25,6 @@
 -- Idempotente: seguro para reexecutar.
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Normalizar cargos existentes para lowercase ──────────
 UPDATE public.colaboradores
@@ -83,7 +82,6 @@ ALTER TABLE public.colaboradores
 CREATE INDEX IF NOT EXISTS idx_colaboradores_cargo
   ON public.colaboradores(cargo);
 
-COMMIT;
 
 -- ─── Verificação ──────────────────────────────────────────────
 SELECT cargo, COUNT(*) AS total, COUNT(*) FILTER (WHERE ativo) AS ativos

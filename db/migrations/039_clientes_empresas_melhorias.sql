@@ -2,7 +2,6 @@
 -- Melhorias incrementais: origem de clientes, status de completude,
 -- vínculos empresa-simulação/contrato e campos de acompanhamento bancário por empresa.
 -- Idempotente: seguro para reexecutar em banco existente.
-BEGIN;
 
 -- ─── 1. Campos de origem e completude em leads ─────────────────────────────
 ALTER TABLE public.leads
@@ -107,4 +106,3 @@ CREATE INDEX IF NOT EXISTS idx_simulacoes_empresa_id ON public.simulacoes_colabo
 CREATE INDEX IF NOT EXISTS idx_contratos_gerados_empresa_id ON public.contratos_gerados(empresa_id) WHERE empresa_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_acompanhamentos_bancarios_empresa_id ON public.acompanhamentos_bancarios(empresa_id) WHERE empresa_id IS NOT NULL;
 
-COMMIT;

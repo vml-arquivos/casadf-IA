@@ -8,7 +8,6 @@
 -- Idempotente.
 -- ============================================================
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -115,4 +114,3 @@ ALTER TABLE public.documentos_empresa
 CREATE INDEX IF NOT EXISTS idx_documentos_empresa_socios
   ON public.documentos_empresa(empresa_id, socio_id, tipo_documento);
 
-COMMIT;

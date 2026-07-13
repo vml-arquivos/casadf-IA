@@ -2,7 +2,6 @@
 -- Corrige erros 500 causados por colunas inexistentes em ambientes que não
 -- executaram todas as migrations anteriores na ordem correta.
 -- Pode ser executada mais de uma vez sem efeitos colaterais.
-BEGIN;
 
 -- ─── Tabela: empresas ────────────────────────────────────────────────────────
 ALTER TABLE IF EXISTS public.empresas
@@ -155,4 +154,3 @@ CREATE INDEX IF NOT EXISTS idx_socios_empresa_cpf ON public.socios_empresa(cpf_c
 CREATE INDEX IF NOT EXISTS idx_socios_empresa_empresa_id ON public.socios_empresa(empresa_id);
 CREATE INDEX IF NOT EXISTS idx_socios_empresa_cpfhub_status ON public.socios_empresa(cpfhub_status);
 
-COMMIT;

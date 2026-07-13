@@ -2,7 +2,6 @@
 -- Recria a CHECK constraint documentos_arquivos_tipo_documento com lista completa e definitiva.
 -- Idempotente: DROP IF EXISTS antes de recriar.
 
-BEGIN;
 
 ALTER TABLE public.documentos_arquivos
   DROP CONSTRAINT IF EXISTS documentos_arquivos_tipo_documento_check;
@@ -41,4 +40,3 @@ ALTER TABLE public.documentos_arquivos
     'outros'
   ));
 
-COMMIT;

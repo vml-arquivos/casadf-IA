@@ -178,7 +178,6 @@ BEGIN
   )
   WHERE id = COALESCE(NEW.lead_id, OLD.lead_id);
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DO $$

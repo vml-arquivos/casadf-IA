@@ -4,7 +4,6 @@
 -- sem impactar os contratos existentes do monólito.
 -- ============================================================
 
-BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.crm_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,4 +19,3 @@ CREATE INDEX IF NOT EXISTS idx_crm_logs_lead_id
 CREATE INDEX IF NOT EXISTS idx_crm_logs_usuario_id
   ON public.crm_logs(usuario_id, created_at DESC);
 
-COMMIT;

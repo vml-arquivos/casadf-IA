@@ -2,7 +2,6 @@
 -- Correção sem regressão para cadastro de empresa, Smart Onboarding, sócios,
 -- documentos/checklist e histórico. Idempotente para redeploy seguro.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -173,4 +172,3 @@ CREATE INDEX IF NOT EXISTS idx_empresa_checklist_empresa_id ON public.empresa_ch
 CREATE INDEX IF NOT EXISTS idx_empresa_checklist_status ON public.empresa_checklist_documentos(status);
 CREATE INDEX IF NOT EXISTS idx_empresa_checklist_categoria ON public.empresa_checklist_documentos(categoria);
 
-COMMIT;

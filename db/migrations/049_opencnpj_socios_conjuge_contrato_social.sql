@@ -2,7 +2,6 @@
 -- Sistema Destrava Crédito
 -- Execute antes do deploy desta versão.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -131,4 +130,3 @@ CREATE TABLE IF NOT EXISTS empresas_contratos_sociais (
 CREATE INDEX IF NOT EXISTS idx_contratos_sociais_empresa_id ON empresas_contratos_sociais(empresa_id);
 CREATE INDEX IF NOT EXISTS idx_contratos_sociais_data_upload ON empresas_contratos_sociais(data_upload);
 
-COMMIT;

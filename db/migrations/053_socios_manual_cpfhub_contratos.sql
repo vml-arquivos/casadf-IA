@@ -1,4 +1,3 @@
-BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 ALTER TABLE IF EXISTS public.socios_empresa
@@ -53,4 +52,3 @@ CREATE TABLE IF NOT EXISTS public.socios_conjuge (
 CREATE INDEX IF NOT EXISTS idx_socios_conjuge_socio_id ON public.socios_conjuge(socio_id);
 CREATE INDEX IF NOT EXISTS idx_socios_conjuge_empresa_id ON public.socios_conjuge(empresa_id);
 
-COMMIT;

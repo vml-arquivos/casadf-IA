@@ -2,7 +2,6 @@
 -- Sistema Destrava Crédito
 -- Execute depois da 049 e antes do deploy desta versão.
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -68,4 +67,3 @@ CREATE INDEX IF NOT EXISTS idx_socios_empresa_empresa_cpf_cnpj_digits ON public.
 CREATE INDEX IF NOT EXISTS idx_socios_empresa_ativo ON public.socios_empresa(empresa_id, ativo);
 CREATE INDEX IF NOT EXISTS idx_socios_empresa_dados_extra_gin ON public.socios_empresa USING GIN (dados_extra);
 
-COMMIT;

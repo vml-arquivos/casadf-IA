@@ -8,7 +8,6 @@
 --   docker exec <container_postgres> psql -U destravadb -d postgres -f /tmp/042.sql
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Tabela leads ─────────────────────────────────────────────────────────
 
@@ -93,7 +92,6 @@ BEGIN
       ELSE 'basico'
     END;
   RETURN NEW;
-END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_leads_status_cadastro ON leads;
@@ -120,7 +118,6 @@ BEGIN
       ELSE 'critico'
     END;
   RETURN NEW;
-END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_leads_risco ON leads;
@@ -164,4 +161,3 @@ UPDATE empresas SET
   END
 WHERE status_cadastro IS NULL;
 
-COMMIT;

@@ -60,7 +60,6 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.atualizado_em = NOW();
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_orcamentos_timbrados_atualizado_em ON public.orcamentos_timbrados;

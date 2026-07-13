@@ -57,7 +57,6 @@ BEGIN
 
   END IF;
   RETURN NEW;
-END;
 $$ LANGUAGE plpgsql;
 
 -- ─── 2. Criar trigger (idempotente) ──────────────────────────

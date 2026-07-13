@@ -2,7 +2,6 @@
 -- Sistema Destrava Crédito
 -- Corrige/instala permissões granulares dos colaboradores
 
-BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -33,4 +32,3 @@ ON auditoria_permissoes (colaborador_id);
 CREATE INDEX IF NOT EXISTS idx_auditoria_permissoes_created_at
 ON auditoria_permissoes (created_at);
 
-COMMIT;

@@ -6,7 +6,6 @@
 -- Seguro para rodar em produção: usa IF NOT EXISTS / ON CONFLICT
 -- ============================================================
 
-BEGIN;
 
 -- ─── 1. Função de normalização de telefone ───────────────────
 -- Remove tudo que não é dígito, garante prefixo 55 e 11 dígitos
@@ -28,7 +27,6 @@ BEGIN
     RETURN digits;
   END IF;
   RETURN digits; -- retorna o que tiver se não bater
-END;
 $$;
 
 -- ─── 2. Coluna telefone_normalizado ──────────────────────────
@@ -130,7 +128,6 @@ BEGIN
       RETURN NEXT;
     END LOOP;
   END LOOP;
-END;
 $$;
 
 -- ─── 8. View atualizada para tela de Clientes ────────────────
@@ -180,4 +177,3 @@ FROM leads l
 WHERE l.status != 'cancelado'
    OR (l.tags ILIKE '%duplicado%' IS FALSE);
 
-COMMIT;
