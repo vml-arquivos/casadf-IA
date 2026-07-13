@@ -1,5 +1,5 @@
 -- ============================================================
--- MIGRAÇÃO 001 — Tabelas base de conversas CRM
+-- MIGRAÇÃO 001a — Tabelas base de conversas CRM
 -- Versão: 1.0 | Data: 2026-07-13
 --
 -- O QUE ESTA MIGRATION FAZ:
@@ -20,11 +20,11 @@ CREATE TABLE IF NOT EXISTS public.crm_eventos_webhook (
   origem              TEXT NOT NULL,
   tipo_evento         TEXT NOT NULL,
   payload             JSONB NOT NULL,
-  status_processamento TEXT NOT NULL DEFAULT 'pendente'
-                        CHECK (status_processamento IN ('pendente', 'processado', 'erro', 'ignorado')),
+  status_processamento TEXT NOT NULL DEFAULT 'pendente',
   erro_detalhe        TEXT,
   processado_em       TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ DEFAULT NOW()
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_status_processamento CHECK (status_processamento IN ('pendente', 'processado', 'erro', 'ignorado'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_crm_eventos_status ON public.crm_eventos_webhook(status_processamento);
@@ -37,14 +37,14 @@ CREATE TABLE IF NOT EXISTS public.crm_conversas (
   lead_id             UUID REFERENCES public.leads(id) ON DELETE CASCADE,
   canal               TEXT NOT NULL,
   canal_id_externo    TEXT UNIQUE NOT NULL,
-  status              TEXT NOT NULL DEFAULT 'aberta'
-                        CHECK (status IN ('aberta', 'fechada', 'pendente_ia', 'escalada_humano')),
+  status              TEXT NOT NULL DEFAULT 'aberta',
   resumo_contexto     TEXT,
   iniciada_em         TIMESTAMPTZ DEFAULT NOW(),
   ultima_interacao_em TIMESTAMPTZ DEFAULT NOW(),
   fechada_em          TIMESTAMPTZ,
   created_at          TIMESTAMPTZ DEFAULT NOW(),
-  updated_at          TIMESTAMPTZ DEFAULT NOW()
+  updated_at          TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_status CHECK (status IN ('aberta', 'fechada', 'pendente_ia', 'escalada_humano'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_crm_conversas_lead ON public.crm_conversas(lead_id);
@@ -57,16 +57,19 @@ CREATE TABLE IF NOT EXISTS public.crm_mensagens (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversa_id         UUID NOT NULL REFERENCES public.crm_conversas(id) ON DELETE CASCADE,
   message_id_externo  TEXT UNIQUE NOT NULL,
-  direcao             TEXT NOT NULL CHECK (direcao IN ('inbound', 'outbound')),
-  remetente_tipo      TEXT NOT NULL CHECK (remetente_tipo IN ('cliente', 'ia', 'humano', 'sistema')),
+  direcao             TEXT NOT NULL,
+  remetente_tipo      TEXT NOT NULL,
   remetente_id        TEXT,
-  tipo_conteudo       TEXT NOT NULL DEFAULT 'texto'
-                        CHECK (tipo_conteudo IN ('texto', 'audio', 'imagem', 'documento', 'template', 'outro')),
+  tipo_conteudo       TEXT NOT NULL DEFAULT 'texto',
   conteudo            TEXT,
   metadados           JSONB,
-  status_envio        TEXT CHECK (status_envio IN ('enviado', 'entregue', 'lido', 'falha')),
+  status_envio        TEXT,
   evento_id           UUID REFERENCES public.crm_eventos_webhook(id) ON DELETE SET NULL,
-  created_at          TIMESTAMPTZ DEFAULT NOW()
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_direcao CHECK (direcao IN ('inbound', 'outbound')),
+  CONSTRAINT chk_remetente_tipo CHECK (remetente_tipo IN ('cliente', 'ia', 'humano', 'sistema')),
+  CONSTRAINT chk_tipo_conteudo CHECK (tipo_conteudo IN ('texto', 'audio', 'imagem', 'documento', 'template', 'outro')),
+  CONSTRAINT chk_status_envio CHECK (status_envio IN ('enviado', 'entregue', 'lido', 'falha'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_crm_mensagens_conversa ON public.crm_mensagens(conversa_id);
@@ -115,5 +118,5 @@ END $$;
 -- ─── 5. Confirmação ──────────────────────────────────────────
 DO $$
 BEGIN
-  RAISE NOTICE 'Migration 001 — tabelas base de conversas CRM aplicada em %', NOW();
+  RAISE NOTICE 'Migration 001a — tabelas base de conversas CRM aplicada em %', NOW();
 END $$;

@@ -167,4 +167,4 @@ CREATE INDEX IF NOT EXISTS idx_crm_historico_funil_lead_data
 CREATE INDEX IF NOT EXISTS idx_crm_atividades_lead_data
   ON public.crm_atividades (lead_id, created_at DESC);
 
-COMMIT;
+
