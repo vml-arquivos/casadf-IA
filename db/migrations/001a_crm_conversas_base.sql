@@ -1,32 +1,39 @@
 -- ============================================================
 -- MIGRAÇÃO 001a — Tabelas base de conversas CRM
--- Versão: 1.0 | Data: 2026-07-13
+-- Versão: 2.0 | Data: 2026-07-13
 --
 -- O QUE ESTA MIGRATION FAZ:
---   1. Tabela crm_conversas: conversas canônicas entre leads e empresa
---   2. Tabela crm_mensagens: mensagens de conversas
---   3. Tabela crm_eventos_webhook: eventos de webhook para auditoria
+--   1. Estende crm_eventos_webhook com colunas adicionais
+--   2. Tabela crm_conversas: conversas canônicas entre leads e empresa
+--   3. Tabela crm_mensagens: mensagens de conversas
 --   4. Índices para performance
 --   5. Triggers para auditoria e sincronização
 --
 -- Idempotente: seguro para reexecutar.
 -- ============================================================
 
--- ─── 1. Tabela: crm_eventos_webhook ──────────────────────────
--- Eventos de webhook com trilha auditável e idempotência
-CREATE TABLE IF NOT EXISTS public.crm_eventos_webhook (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id            TEXT UNIQUE NOT NULL,
-  origem              TEXT NOT NULL,
-  tipo_evento         TEXT NOT NULL,
-  payload             JSONB NOT NULL,
-  status_processamento TEXT NOT NULL DEFAULT 'pendente',
-  erro_detalhe        TEXT,
-  processado_em       TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT chk_status_processamento CHECK (status_processamento IN ('pendente', 'processado', 'erro', 'ignorado'))
-);
+-- ─── 1. Estender crm_eventos_webhook com colunas adicionais ──
+-- A tabela base já foi criada em db/migrate.sql
+-- Aqui adicionamos as colunas que faltam para o novo schema
+ALTER TABLE IF EXISTS public.crm_eventos_webhook
+  ADD COLUMN IF NOT EXISTS event_id TEXT UNIQUE;
 
+ALTER TABLE IF EXISTS public.crm_eventos_webhook
+  ADD COLUMN IF NOT EXISTS origem TEXT;
+
+ALTER TABLE IF EXISTS public.crm_eventos_webhook
+  ADD COLUMN IF NOT EXISTS tipo_evento TEXT;
+
+ALTER TABLE IF EXISTS public.crm_eventos_webhook
+  ADD COLUMN IF NOT EXISTS status_processamento TEXT DEFAULT 'pendente';
+
+ALTER TABLE IF EXISTS public.crm_eventos_webhook
+  ADD COLUMN IF NOT EXISTS erro_detalhe TEXT;
+
+ALTER TABLE IF EXISTS public.crm_eventos_webhook
+  ADD COLUMN IF NOT EXISTS processado_em TIMESTAMPTZ;
+
+-- Criar índices se não existirem
 CREATE INDEX IF NOT EXISTS idx_crm_eventos_status ON public.crm_eventos_webhook(status_processamento);
 CREATE INDEX IF NOT EXISTS idx_crm_eventos_created ON public.crm_eventos_webhook(created_at DESC);
 
@@ -83,6 +90,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DO $$
@@ -102,6 +110,7 @@ BEGIN
   SET ultima_interacao_em = NEW.created_at 
   WHERE id = NEW.conversa_id;
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DO $$
