@@ -12,53 +12,18 @@
 -- ============================================================
 
 
--- Preserva todas as views públicas antes de remover apenas as que dependem de
--- leads.etapa_funil. O backup também cobre views adicionadas por versões futuras
--- e as dependências em cascata entre views.
-DROP TABLE IF EXISTS pg_temp.migration_040_funil_views;
-CREATE TEMP TABLE migration_040_funil_views (
-  schema_name TEXT NOT NULL,
-  view_name TEXT NOT NULL,
-  definition TEXT NOT NULL,
-  restored BOOLEAN NOT NULL DEFAULT FALSE,
-  last_error TEXT,
-  PRIMARY KEY (schema_name, view_name)
-) ON COMMIT PRESERVE ROWS;
-
-INSERT INTO migration_040_funil_views (schema_name, view_name, definition)
-SELECT n.nspname, c.relname, pg_get_viewdef(c.oid, TRUE)
-FROM pg_class c
-JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE c.relkind = 'v'
-  AND n.nspname = 'public';
-
--- O trigger também mantém dependência do tipo da coluna em algumas versões.
+-- ─── 0. Views e trigger dependentes de leads.etapa_funil precisam ser ───────
+-- removidas antes de qualquer ALTER COLUMN TYPE na coluna. O trigger é
+-- recriado no passo 6 e as views no passo 11.
 DROP TRIGGER IF EXISTS trg_leads_movimentacao_funil ON public.leads;
-
-DO $$
-DECLARE
-  v_view RECORD;
-BEGIN
-  FOR v_view IN
-    SELECT DISTINCT n.nspname AS schema_name, c.relname AS view_name
-    FROM pg_depend d
-    JOIN pg_rewrite r ON r.oid = d.objid
-    JOIN pg_class c ON c.oid = r.ev_class
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE d.refobjid = 'public.leads'::regclass
-      AND d.refobjsubid = (
-        SELECT attnum
-        FROM pg_attribute
-        WHERE attrelid = 'public.leads'::regclass
-          AND attname = 'etapa_funil'
-          AND NOT attisdropped
-      )
-      AND c.relkind = 'v'
-      AND n.nspname = 'public'
-  LOOP
-    EXECUTE format('DROP VIEW IF EXISTS %I.%I CASCADE', v_view.schema_name, v_view.view_name);
-  END LOOP;
-END $$;
+DROP VIEW IF EXISTS public.vw_leads_para_ia CASCADE;
+DROP VIEW IF EXISTS public.vw_performance_colaboradores CASCADE;
+DROP VIEW IF EXISTS public.vw_crm_pipeline CASCADE;
+DROP VIEW IF EXISTS public.vw_crm_metricas CASCADE;
+DROP VIEW IF EXISTS public.vw_pipeline_por_etapa CASCADE;
+DROP VIEW IF EXISTS public.vw_funil_conversao CASCADE;
+DROP VIEW IF EXISTS public.vw_dashboard_gestor CASCADE;
+DROP VIEW IF EXISTS public.vw_leads_por_responsavel CASCADE;
 
 -- ─── 1. Verificar se etapa_funil ainda é enum e converter para TEXT ─────────
 DO $$
@@ -89,63 +54,6 @@ BEGIN
     RAISE NOTICE 'etapa_funil já é TEXT (tipo: %). Nenhuma alteração necessária.', v_col_type;
   END IF;
 END $$;
-
--- Recria as views removidas, respeitando dependências entre elas. As definições
--- capturadas pelo PostgreSQL contêm casts para o enum antigo; após a conversão,
--- esses casts precisam apontar para TEXT.
-DO $$
-DECLARE
-  v_view RECORD;
-  v_progress BOOLEAN;
-  v_pending TEXT;
-BEGIN
-  LOOP
-    EXIT WHEN NOT EXISTS (
-      SELECT 1
-      FROM migration_040_funil_views
-      WHERE to_regclass(format('%I.%I', schema_name, view_name)) IS NULL
-        AND NOT restored
-    );
-
-    v_progress := FALSE;
-
-    FOR v_view IN
-      SELECT schema_name, view_name, definition
-      FROM migration_040_funil_views
-      WHERE to_regclass(format('%I.%I', schema_name, view_name)) IS NULL
-        AND NOT restored
-      ORDER BY schema_name, view_name
-    LOOP
-      BEGIN
-        EXECUTE format(
-          'CREATE VIEW %I.%I AS %s',
-          v_view.schema_name,
-          v_view.view_name,
-          replace(v_view.definition, '::etapa_funil_enum', '::text')
-        );
-        UPDATE migration_040_funil_views
-        SET restored = TRUE, last_error = NULL
-        WHERE schema_name = v_view.schema_name AND view_name = v_view.view_name;
-        v_progress := TRUE;
-      EXCEPTION WHEN OTHERS THEN
-        UPDATE migration_040_funil_views
-        SET last_error = SQLERRM
-        WHERE schema_name = v_view.schema_name AND view_name = v_view.view_name;
-      END;
-    END LOOP;
-
-    IF NOT v_progress THEN
-      SELECT string_agg(format('%I.%I: %s', schema_name, view_name, last_error), E'\n')
-      INTO v_pending
-      FROM migration_040_funil_views
-      WHERE to_regclass(format('%I.%I', schema_name, view_name)) IS NULL
-        AND NOT restored;
-      RAISE EXCEPTION 'Não foi possível recriar as views dependentes de etapa_funil:%', E'\n' || v_pending;
-    END IF;
-  END LOOP;
-END $$;
-
-DROP TABLE migration_040_funil_views;
 
 -- ─── 2. Garantir NOT NULL e DEFAULT ─────────────────────────────────────────
 UPDATE public.leads
@@ -195,6 +103,8 @@ ALTER TABLE public.leads
 -- não o removemos para evitar quebrar dependências.
 
 -- ─── 6. Recriar trigger de movimentação de funil (compatível com TEXT) ───────
+DROP TRIGGER IF EXISTS trg_leads_movimentacao_funil ON public.leads;
+
 CREATE OR REPLACE FUNCTION public.fn_registrar_movimentacao_funil()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -357,3 +267,251 @@ CREATE INDEX IF NOT EXISTS idx_crm_logs_lead_id
 
 CREATE INDEX IF NOT EXISTS idx_crm_logs_usuario_id
   ON public.crm_logs (usuario_id, created_at DESC);
+
+-- ─── 11. Recriar views removidas no passo 0 ─────────────────────────────────
+CREATE OR REPLACE VIEW public.vw_crm_pipeline AS
+SELECT
+  l.id,
+  l.nome,
+  l.telefone,
+  l.email,
+  l.empresa,
+  l.tipo_pessoa,
+  l.cpf_cnpj,
+  l.cargo,
+  l.cidade,
+  l.estado,
+  l.canal_origem,
+  l.produto_interesse,
+  l.valor_solicitado,
+  l.prazo_meses,
+  l.etapa_funil,
+  l.temperatura,
+  l.score_ia,
+  l.score_manual,
+  l.score_efetivo,
+  l.tags,
+  l.proximo_followup,
+  l.ultimo_contato_em,
+  l.resumo_ia,
+  l.observacoes_ia,
+  l.chatwoot_conv_id,
+  l.responsavel_id,
+  c.nome AS responsavel_nome,
+  l.origem,
+  l.status,
+  l.created_at,
+  l.updated_at,
+  COALESCE(d.total_docs, 0) AS total_docs,
+  COALESCE(d.docs_recebidos, 0) AS docs_recebidos,
+  COALESCE(d.docs_pendentes_obrig, 0) AS docs_pendentes_obrig,
+  a.titulo AS ultima_atividade,
+  a.created_at AS ultima_atividade_em,
+  EXTRACT(DAY FROM NOW() - COALESCE(l.ultimo_contato_em, l.created_at))::INTEGER AS dias_sem_contato
+FROM public.leads l
+LEFT JOIN public.colaboradores c ON c.id = l.responsavel_id
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(*) AS total_docs,
+    COUNT(*) FILTER (WHERE status IN ('recebido','aprovado')) AS docs_recebidos,
+    COUNT(*) FILTER (WHERE obrigatorio AND status = 'pendente') AS docs_pendentes_obrig
+  FROM public.crm_documentos
+  WHERE lead_id = l.id
+) d ON TRUE
+LEFT JOIN LATERAL (
+  SELECT titulo, created_at
+  FROM public.crm_atividades
+  WHERE lead_id = l.id
+  ORDER BY created_at DESC
+  LIMIT 1
+) a ON TRUE;
+
+CREATE OR REPLACE VIEW public.vw_crm_metricas AS
+SELECT
+  etapa_funil,
+  temperatura,
+  COUNT(*) AS total_leads,
+  SUM(valor_solicitado) AS valor_total_pipeline,
+  AVG(score_efetivo)::INTEGER AS score_medio,
+  COUNT(*) FILTER (WHERE proximo_followup <= NOW()) AS followups_atrasados,
+  COUNT(*) FILTER (WHERE dias_sem_contato > 7) AS sem_contato_7d
+FROM public.vw_crm_pipeline
+GROUP BY etapa_funil, temperatura;
+
+CREATE OR REPLACE VIEW public.vw_pipeline_por_etapa AS
+SELECT
+  etapa_funil,
+  COUNT(*) AS total_leads,
+  COALESCE(SUM(valor_solicitado), 0) AS valor_total,
+  COUNT(*) FILTER (WHERE temperatura = 'urgente') AS urgentes,
+  COUNT(*) FILTER (WHERE temperatura = 'quente') AS quentes,
+  COUNT(*) FILTER (WHERE proximo_followup < NOW()) AS followups_atrasados,
+  AVG(score_efetivo)::INTEGER AS score_medio,
+  COUNT(*) FILTER (WHERE responsavel_id IS NULL) AS sem_responsavel
+FROM public.leads
+GROUP BY etapa_funil
+ORDER BY
+  CASE etapa_funil
+    WHEN 'entrada' THEN 1
+    WHEN 'triagem' THEN 2
+    WHEN 'contato' THEN 3
+    WHEN 'qualificacao' THEN 4
+    WHEN 'documentos' THEN 5
+    WHEN 'analise' THEN 6
+    WHEN 'proposta' THEN 7
+    WHEN 'negociacao' THEN 8
+    WHEN 'ganho' THEN 9
+    WHEN 'perdido' THEN 10
+    WHEN 'reativacao' THEN 11
+    WHEN 'carteira' THEN 12
+    ELSE 99
+  END;
+
+CREATE OR REPLACE VIEW public.vw_funil_conversao AS
+WITH etapas AS (
+  SELECT unnest(ARRAY[
+    'entrada','triagem','contato','qualificacao','documentos','analise',
+    'proposta','negociacao','ganho','perdido','reativacao','carteira'
+  ]::TEXT[]) AS etapa,
+  generate_series(1, 12) AS ordem
+),
+contagens AS (
+  SELECT etapa_funil::TEXT AS etapa_funil, COUNT(*) AS total
+  FROM public.leads
+  WHERE etapa_funil IS NOT NULL
+  GROUP BY etapa_funil
+)
+SELECT
+  e.etapa,
+  e.ordem,
+  COALESCE(c.total, 0) AS total_leads,
+  LAG(COALESCE(c.total, 0)) OVER (ORDER BY e.ordem) AS total_etapa_anterior,
+  CASE
+    WHEN LAG(COALESCE(c.total, 0)) OVER (ORDER BY e.ordem) > 0
+    THEN ROUND(
+      COALESCE(c.total, 0)::NUMERIC
+      / LAG(COALESCE(c.total, 0)) OVER (ORDER BY e.ordem) * 100, 1
+    )
+    ELSE NULL
+  END AS taxa_retencao_pct
+FROM etapas e
+LEFT JOIN contagens c ON c.etapa_funil = e.etapa
+ORDER BY e.ordem;
+
+-- ─── 7. Recriar views removidas no passo 5 ────────────────────
+CREATE OR REPLACE VIEW public.vw_leads_para_ia AS
+SELECT
+  l.id,
+  l.nome,
+  l.empresa,
+  l.tipo_pessoa,
+  l.produto_interesse,
+  l.valor_solicitado,
+  l.prazo_meses,
+  l.origem,
+  l.etapa_funil,
+  l.temperatura,
+  l.score_ia,
+  l.score_efetivo,
+  l.created_at,
+  l.updated_at,
+  (l.score_ia = 0 OR l.score_ia IS NULL)                        AS precisa_score,
+  EXTRACT(DAY FROM NOW() - l.created_at)::INTEGER               AS dias_desde_criacao
+FROM public.leads l
+WHERE l.etapa_funil NOT IN ('ganho','perdido','reativacao');
+
+CREATE OR REPLACE VIEW public.vw_performance_colaboradores AS
+SELECT
+  col.id                                                        AS colaborador_id,
+  col.nome,
+  col.cargo,
+  col.ativo,
+  COUNT(DISTINCT l.id)                                          AS total_leads,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.etapa_funil = 'ganho')  AS leads_ganhos,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.etapa_funil = 'perdido') AS leads_perdidos,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.etapa_funil NOT IN ('ganho','perdido','reativacao')) AS leads_ativos,
+  COALESCE(SUM(l.valor_solicitado) FILTER (
+    WHERE l.etapa_funil = 'ganho'
+  ), 0)                                                         AS valor_ganho,
+  COALESCE(SUM(l.valor_solicitado) FILTER (
+    WHERE l.etapa_funil NOT IN ('perdido','reativacao')
+  ), 0)                                                         AS valor_pipeline,
+  CASE
+    WHEN COUNT(DISTINCT l.id) > 0
+    THEN ROUND(
+      COUNT(DISTINCT l.id) FILTER (WHERE l.etapa_funil = 'ganho')::NUMERIC
+      / COUNT(DISTINCT l.id) * 100, 1
+    )
+    ELSE 0
+  END                                                           AS taxa_conversao_pct,
+  COUNT(DISTINCT f.id) FILTER (
+    WHERE f.status = 'pendente' AND f.agendado_para < NOW()
+  )                                                             AS followups_atrasados,
+  COUNT(DISTINCT a.id) FILTER (
+    WHERE a.created_at >= NOW() - INTERVAL '7 days'
+  )                                                             AS atividades_7d,
+  COUNT(DISTINCT lc.id)                                         AS leads_captados
+FROM public.colaboradores col
+LEFT JOIN public.leads l  ON l.responsavel_id = col.id
+LEFT JOIN public.triagem_leads lc ON lc.captador_id = col.id
+LEFT JOIN public.crm_followups f ON f.colaborador_id = col.id
+LEFT JOIN public.crm_atividades a ON a.colaborador_id = col.id
+GROUP BY col.id, col.nome, col.cargo, col.ativo;
+
+CREATE OR REPLACE VIEW public.vw_dashboard_gestor AS
+SELECT
+  COUNT(DISTINCT l.id)                                          AS total_leads,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.etapa_funil = 'ganho')  AS leads_ganhos,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.etapa_funil = 'perdido') AS leads_perdidos,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.created_at >= NOW() - INTERVAL '30 days') AS leads_ultimos_30d,
+  COUNT(DISTINCT l.id) FILTER (WHERE l.created_at >= NOW() - INTERVAL '7 days')  AS leads_ultimos_7d,
+  COALESCE(SUM(l.valor_solicitado) FILTER (
+    WHERE l.etapa_funil NOT IN ('perdido','reativacao')
+  ), 0)                                                         AS valor_pipeline_ativo,
+  COALESCE(SUM(l.valor_solicitado) FILTER (
+    WHERE l.etapa_funil = 'ganho'
+  ), 0)                                                         AS valor_ganho_total,
+  COUNT(DISTINCT t.id)                                          AS total_triagem,
+  COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'pendente')    AS triagem_pendente,
+  COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'convertido')  AS triagem_convertida,
+  COUNT(DISTINCT c.id)                                          AS total_conversas,
+  COUNT(DISTINCT c.id) FILTER (WHERE c.status NOT IN ('resolvida','arquivada')) AS conversas_ativas,
+  COUNT(DISTINCT f.id) FILTER (
+    WHERE f.status = 'pendente' AND f.agendado_para < NOW()
+  )                                                             AS followups_atrasados,
+  COUNT(DISTINCT f.id) FILTER (
+    WHERE f.status = 'pendente'
+    AND f.agendado_para BETWEEN NOW() AND NOW() + INTERVAL '24 hours'
+  )                                                             AS followups_hoje
+FROM public.leads l
+LEFT JOIN public.triagem_leads t ON TRUE
+LEFT JOIN public.crm_conversas c ON c.lead_id = l.id
+LEFT JOIN public.crm_followups f ON f.lead_id = l.id;
+
+CREATE OR REPLACE VIEW public.vw_leads_por_responsavel AS
+SELECT
+  l.responsavel_id,
+  col.nome                                                      AS responsavel_nome,
+  col.cargo                                                     AS responsavel_cargo,
+  l.id                                                          AS lead_id,
+  l.nome                                                        AS lead_nome,
+  l.telefone,
+  l.empresa,
+  l.etapa_funil,
+  l.temperatura,
+  l.score_efetivo,
+  l.prioridade,
+  l.valor_solicitado,
+  l.proximo_followup,
+  l.ultimo_contato_em,
+  l.caixa_id,
+  cx.nome                                                       AS caixa_nome,
+  l.created_at,
+  l.updated_at,
+  EXTRACT(DAY FROM NOW() - COALESCE(l.ultimo_contato_em, l.created_at))::INTEGER AS dias_sem_contato
+FROM public.leads l
+LEFT JOIN public.colaboradores col ON col.id = l.responsavel_id
+LEFT JOIN public.crm_caixas cx     ON cx.id = l.caixa_id
+WHERE l.etapa_funil NOT IN ('reativacao');
+
+

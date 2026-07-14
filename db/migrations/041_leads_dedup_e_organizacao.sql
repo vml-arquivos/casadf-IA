@@ -47,62 +47,8 @@ ALTER TABLE leads
 
 -- ─── 4. Coluna prioridade ────────────────────────────────────
 ALTER TABLE leads
-  ADD COLUMN IF NOT EXISTS prioridade TEXT,
-  ADD COLUMN IF NOT EXISTS segmento TEXT,
-  ADD COLUMN IF NOT EXISTS faturamento_anual NUMERIC(15,2);
-
--- A migration 005 usava a taxonomia normal/urgente; o frontend e as APIs de
--- clientes usam baixa/media/alta. Convergimos os dados antes do novo CHECK.
-DO $$
-DECLARE
-  v_constraint RECORD;
-BEGIN
-  FOR v_constraint IN
-    SELECT conname
-    FROM pg_constraint
-    WHERE conrelid = 'public.leads'::regclass
-      AND contype = 'c'
-      AND pg_get_constraintdef(oid) ILIKE '%prioridade%'
-  LOOP
-    EXECUTE format('ALTER TABLE public.leads DROP CONSTRAINT %I', v_constraint.conname);
-  END LOOP;
-END $$;
-
-UPDATE leads
-SET prioridade = CASE
-  WHEN prioridade = 'urgente' THEN 'alta'
-  WHEN prioridade = 'normal' OR prioridade IS NULL OR BTRIM(prioridade) = '' THEN 'media'
-  ELSE prioridade
-END;
-
-ALTER TABLE leads
-  ALTER COLUMN prioridade SET DEFAULT 'media',
-  ALTER COLUMN prioridade SET NOT NULL,
-  ADD CONSTRAINT leads_prioridade_check CHECK (prioridade IN ('alta', 'media', 'baixa'));
-
--- A função de deduplicação marca o registro secundário como cancelado. O
--- schema base não previa esse estado, embora a tela de clientes já o utilize.
-DO $$
-DECLARE
-  v_constraint RECORD;
-BEGIN
-  FOR v_constraint IN
-    SELECT conname
-    FROM pg_constraint
-    WHERE conrelid = 'public.leads'::regclass
-      AND contype = 'c'
-      AND pg_get_constraintdef(oid) ILIKE '%status%'
-      AND pg_get_constraintdef(oid) NOT ILIKE '%etapa_funil%'
-  LOOP
-    EXECUTE format('ALTER TABLE public.leads DROP CONSTRAINT %I', v_constraint.conname);
-  END LOOP;
-END $$;
-
-ALTER TABLE leads
-  ADD CONSTRAINT leads_status_check CHECK (status IN (
-    'novo', 'contatado', 'em_negociacao', 'convertido', 'perdido',
-    'lead', 'contato', 'analise', 'aprovado', 'reprovado', 'cancelado'
-  ));
+  ADD COLUMN IF NOT EXISTS prioridade TEXT NOT NULL DEFAULT 'media'
+    CHECK (prioridade IN ('alta', 'media', 'baixa'));
 
 -- ─── 5. Índice em telefone_normalizado para dedupe rápido ────
 CREATE INDEX IF NOT EXISTS idx_leads_telefone_normalizado
@@ -159,8 +105,6 @@ BEGIN
         empresa     = COALESCE(empresa, (SELECT empresa FROM leads WHERE id = duplicado_id)),
         cidade      = COALESCE(cidade, (SELECT cidade FROM leads WHERE id = duplicado_id)),
         estado      = COALESCE(estado, (SELECT estado FROM leads WHERE id = duplicado_id)),
-        segmento    = COALESCE(segmento, (SELECT segmento FROM leads WHERE id = duplicado_id)),
-        faturamento_anual = COALESCE(faturamento_anual, (SELECT faturamento_anual FROM leads WHERE id = duplicado_id)),
         tags        = COALESCE(tags, (SELECT tags FROM leads WHERE id = duplicado_id)),
         updated_at  = NOW()
       WHERE id = principal_id;
@@ -172,10 +116,7 @@ BEGIN
       -- Marca duplicado como cancelado
       UPDATE leads SET
         status = 'cancelado',
-        tags = CASE
-          WHEN 'duplicado' = ANY(COALESCE(tags, ARRAY[]::TEXT[])) THEN tags
-          ELSE array_append(COALESCE(tags, ARRAY[]::TEXT[]), 'duplicado')
-        END,
+        tags = array_append(COALESCE(tags, ARRAY[]::TEXT[]), 'duplicado'),
         observacoes_ia = COALESCE(observacoes_ia, '') || ' [DUPLICADO MESCLADO COM ' || principal_id::TEXT || ']',
         updated_at = NOW()
       WHERE id = duplicado_id;
@@ -203,8 +144,6 @@ SELECT
   COALESCE(l.tipo_pessoa, 'pj') AS tipo,
   l.cidade,
   l.estado,
-  l.faturamento_anual,
-  l.segmento,
   COALESCE(l.status, 'lead') AS status,
   CASE
     WHEN l.origem ILIKE '%campanha%' OR l.utm_source IS NOT NULL THEN 'campanha'
@@ -234,4 +173,7 @@ SELECT
   (SELECT COUNT(*) FROM crm_atividades ca WHERE ca.lead_id = l.id) AS total_atividades
 FROM leads l
 WHERE l.status != 'cancelado'
-   OR NOT ('duplicado' = ANY(COALESCE(l.tags, ARRAY[]::TEXT[])));
+   OR NOT EXISTS (
+        SELECT 1 FROM unnest(l.tags) t WHERE t ILIKE '%duplicado%'
+      );
+

@@ -162,3 +162,4 @@ UPDATE empresas SET
     ELSE 'basico'
   END
 WHERE status_cadastro IS NULL;
+

@@ -50,3 +50,4 @@ CREATE INDEX IF NOT EXISTS idx_leads_email_lower
 CREATE INDEX IF NOT EXISTS idx_crm_atividades_tipo_whatsapp
   ON public.crm_atividades (lead_id, created_at DESC)
   WHERE tipo IN ('whatsapp_mensagem','whatsapp_inicio','whatsapp_encerrado','whatsapp');
+

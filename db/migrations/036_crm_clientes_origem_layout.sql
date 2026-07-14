@@ -2,35 +2,35 @@
 -- Organização visual/operacional de clientes e origem sem regressão.
 -- Todos os campos são opcionais e compatíveis com dados antigos.
 
--- A tabela era criada apenas no bootstrap do servidor. Como as migrations são
--- executadas antes do processo HTTP, ela precisa fazer parte da cadeia SQL.
+-- A tabela clientes_pf historicamente só era criada pelo código de startup
+-- do servidor (server/index.ts), não pela cadeia de migrações. Isso quebra
+-- "migrate-all.mjs" em bancos novos, pois as migrações rodam antes do
+-- servidor subir. Criamos aqui (idempotente) para que a migração não
+-- dependa da ordem de boot da aplicação.
 CREATE TABLE IF NOT EXISTS public.clientes_pf (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome TEXT NOT NULL,
-  cpf TEXT NOT NULL,
-  rg TEXT,
-  data_nascimento DATE,
-  email TEXT,
-  telefone TEXT,
-  endereco TEXT,
-  cidade TEXT,
-  uf CHAR(2),
-  cep TEXT,
-  profissao TEXT,
-  estado_civil TEXT,
-  observacoes TEXT,
-  origem TEXT DEFAULT 'painel_interno',
-  canal_origem TEXT,
-  fonte_cadastro TEXT DEFAULT 'Cliente PF cadastrado manualmente',
-  cadastrado_por UUID REFERENCES public.colaboradores(id) ON DELETE SET NULL,
-  ativo BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE (cpf)
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome             TEXT NOT NULL,
+  cpf              TEXT NOT NULL,
+  rg               TEXT,
+  data_nascimento  DATE,
+  email            TEXT,
+  telefone         TEXT,
+  endereco         TEXT,
+  cidade           TEXT,
+  uf               CHAR(2),
+  cep              TEXT,
+  profissao        TEXT,
+  estado_civil     TEXT,
+  observacoes      TEXT,
+  origem           TEXT DEFAULT 'painel_interno',
+  canal_origem     TEXT,
+  fonte_cadastro   TEXT DEFAULT 'Cliente PF cadastrado manualmente',
+  cadastrado_por   UUID REFERENCES public.colaboradores(id) ON DELETE SET NULL,
+  ativo            BOOLEAN DEFAULT TRUE,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(cpf)
 );
-
-CREATE INDEX IF NOT EXISTS idx_clientes_pf_ativo ON public.clientes_pf(ativo);
-CREATE INDEX IF NOT EXISTS idx_clientes_pf_nome ON public.clientes_pf(nome);
 
 ALTER TABLE IF EXISTS clientes_pf
   ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT 'manual',

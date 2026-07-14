@@ -24,4 +24,12 @@ CREATE INDEX IF NOT EXISTS idx_simulacao_pdfs_colaborador_id
 CREATE INDEX IF NOT EXISTS idx_simulacao_pdfs_criado_em
   ON public.simulacao_pdfs(criado_em DESC);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.simulacao_pdfs TO CURRENT_USER;
+-- GRANT condicional: 'destravadb' e o usuario/role de producao especifico
+-- deste projeto. Em bancos novos (Supabase, outra VPS) essa role pode nao
+-- existir, o que quebrava a migracao inteira. Agora so concede se existir.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'destravadb') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON public.simulacao_pdfs TO destravadb;
+  END IF;
+END $$;

@@ -4,6 +4,13 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- contratos_gerados.cliente_pf_id historicamente só era criada pelo código de
+-- startup do servidor (server/index.ts), não pela cadeia de migrações. Como
+-- este arquivo referencia cg.cliente_pf_id mais abaixo, garantimos a coluna
+-- aqui para que a migração não dependa da ordem de boot da aplicação.
+ALTER TABLE IF EXISTS public.contratos_gerados
+  ADD COLUMN IF NOT EXISTS cliente_pf_id UUID REFERENCES public.clientes_pf(id) ON DELETE SET NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'documento_entidade_tipo') THEN
@@ -235,10 +242,6 @@ BEGIN
 END $$;
 
 -- Migração contratos gerados -> documentos_arquivos como entidade contrato.
-ALTER TABLE public.contratos_gerados
-  ADD COLUMN IF NOT EXISTS cliente_pf_id UUID
-    REFERENCES public.clientes_pf(id) ON DELETE SET NULL;
-
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='contratos_gerados') THEN

@@ -3326,7 +3326,7 @@ async function startServer() {
       await registrarAuditoria(req, {
         acao: 'lead.etapa_alterada',
         entidade: 'lead',
-        entidade_id: lead_id,
+        entidade_id: Number(lead_id) || null,
         dados_antes: { etapa_funil: atuais[0]?.etapa_funil },
         dados_depois: { etapa_funil: etapaNormalizada },
       });

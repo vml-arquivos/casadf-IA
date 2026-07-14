@@ -180,12 +180,12 @@ CREATE TABLE IF NOT EXISTS public.acompanhamento_bancario_alertas (
 
 ALTER TABLE IF EXISTS public.acompanhamento_bancario_alertas
   ADD COLUMN IF NOT EXISTS atualizacao_id UUID,
+  ADD COLUMN IF NOT EXISTS resolvido_em TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS numero_semana INTEGER,
   ADD COLUMN IF NOT EXISTS origem TEXT DEFAULT 'sistema',
   ADD COLUMN IF NOT EXISTS prioridade TEXT DEFAULT 'media',
   ADD COLUMN IF NOT EXISTS payload JSONB DEFAULT '{}'::jsonb,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW(),
-  ADD COLUMN IF NOT EXISTS resolvido_em TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 
 DO $$
 BEGIN

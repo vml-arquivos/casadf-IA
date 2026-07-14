@@ -47,5 +47,13 @@ EXECUTE FUNCTION public.sincronizar_empresas_estado_uf();
 
 CREATE INDEX IF NOT EXISTS idx_empresas_uf ON public.empresas(uf);
 
-GRANT SELECT, INSERT, UPDATE ON public.empresas TO CURRENT_USER;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;
+-- GRANT condicional: 'destravadb' e o usuario/role de producao especifico
+-- deste projeto. Em bancos novos (Supabase, outra VPS) essa role pode nao
+-- existir, o que quebrava a migracao inteira. Agora so concede se existir.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'destravadb') THEN
+    GRANT SELECT, INSERT, UPDATE ON public.empresas TO destravadb;
+    GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO destravadb;
+  END IF;
+END $$;

@@ -11,7 +11,6 @@
 -- ============================================================
 
 
--- Garantir função set_updated_at (caso não exista)
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -20,7 +19,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Expandir socios_empresa
 
 -- Dados pessoais
 ALTER TABLE public.socios_empresa
@@ -87,7 +85,6 @@ ALTER TABLE public.socios_empresa
   ADD COLUMN IF NOT EXISTS observacoes           TEXT,
   ADD COLUMN IF NOT EXISTS dados_extras          JSONB DEFAULT '{}'::jsonb;
 
--- socios_empresa expandido.
 
 -- Índices úteis para análise
 CREATE INDEX IF NOT EXISTS idx_socios_empresa_cpf
@@ -102,13 +99,11 @@ CREATE INDEX IF NOT EXISTS idx_socios_empresa_conjuge_cpf
 ALTER TABLE public.socios_empresa DISABLE ROW LEVEL SECURITY;
 
 -- Permissões
-GRANT ALL PRIVILEGES ON public.socios_empresa TO CURRENT_USER;
+GRANT ALL PRIVILEGES ON public.socios_empresa TO postgres;
 
 
--- Validação
 SELECT column_name, data_type
 FROM information_schema.columns
 WHERE table_schema = 'public' AND table_name = 'socios_empresa'
 ORDER BY ordinal_position;
 
--- Concluído.
