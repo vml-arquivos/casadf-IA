@@ -18,5 +18,5 @@ UPDATE public.orcamentos_timbrados_anexos
 CREATE INDEX IF NOT EXISTS idx_orcamentos_timbrados_anexos_status
   ON public.orcamentos_timbrados_anexos(status);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados_anexos TO destravadb;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO destravadb;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados_anexos TO CURRENT_USER;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;

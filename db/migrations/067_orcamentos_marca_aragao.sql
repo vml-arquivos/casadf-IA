@@ -23,6 +23,6 @@ CHECK (marca IN ('destrava', 'permupay', 'aragao'));
 CREATE INDEX IF NOT EXISTS idx_orcamentos_timbrados_marca
 ON public.orcamentos_timbrados (marca);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados TO destravadb;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados_anexos TO destravadb;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO destravadb;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados TO CURRENT_USER;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados_anexos TO CURRENT_USER;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;

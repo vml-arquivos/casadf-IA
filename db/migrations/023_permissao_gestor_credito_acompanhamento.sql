@@ -5,19 +5,18 @@ ALTER TABLE colaboradores
 ADD COLUMN IF NOT EXISTS acesso_acompanhamento_bancario BOOLEAN NOT NULL DEFAULT false;
 
 UPDATE colaboradores
-SET role = 'gestor_credito'
-WHERE LOWER(COALESCE(role, '')) IN ('gerente', 'gerente_credito', 'gestor de credito', 'gestor de crédito');
-
-UPDATE colaboradores
-SET acesso_acompanhamento_bancario = true
-WHERE LOWER(COALESCE(role, '')) IN ('admin', 'super_admin', 'superadmin', 'gestor_credito');
-
-UPDATE colaboradores
-SET acesso_acompanhamento_bancario = false
-WHERE LOWER(COALESCE(role, '')) NOT IN ('admin', 'super_admin', 'superadmin', 'gestor_credito');
+SET acesso_acompanhamento_bancario = LOWER(TRIM(COALESCE(cargo, ''))) IN (
+  'administrador',
+  'admin',
+  'diretor',
+  'gerente comercial',
+  'gestor_credito',
+  'gestor de credito',
+  'gestor de crédito'
+);
 
 CREATE INDEX IF NOT EXISTS idx_colaboradores_acesso_acompanhamento_bancario
 ON colaboradores (acesso_acompanhamento_bancario);
 
-CREATE INDEX IF NOT EXISTS idx_colaboradores_role
-ON colaboradores (role);
+CREATE INDEX IF NOT EXISTS idx_colaboradores_cargo
+ON colaboradores (cargo);

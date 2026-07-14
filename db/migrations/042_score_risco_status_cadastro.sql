@@ -92,6 +92,7 @@ BEGIN
       ELSE 'basico'
     END;
   RETURN NEW;
+END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_leads_status_cadastro ON leads;
@@ -118,6 +119,7 @@ BEGIN
       ELSE 'critico'
     END;
   RETURN NEW;
+END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_leads_risco ON leads;
@@ -160,4 +162,3 @@ UPDATE empresas SET
     ELSE 'basico'
   END
 WHERE status_cadastro IS NULL;
-

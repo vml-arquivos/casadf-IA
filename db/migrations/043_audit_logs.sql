@@ -3,12 +3,12 @@
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id            BIGSERIAL PRIMARY KEY,
-  usuario_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  usuario_id    UUID REFERENCES colaboradores(id) ON DELETE SET NULL,
   usuario_nome  TEXT,
   usuario_cargo TEXT,
   acao          TEXT NOT NULL,          -- ex: 'lead.status_alterado', 'contrato.gerado', 'empresa.editada'
   entidade      TEXT,                   -- ex: 'lead', 'empresa', 'contrato', 'usuario'
-  entidade_id   INTEGER,                -- ID do registro afetado
+  entidade_id   UUID,                   -- ID do registro afetado
   dados_antes   JSONB,                  -- snapshot antes da alteração
   dados_depois  JSONB,                  -- snapshot depois da alteração
   ip            TEXT,

@@ -56,8 +56,21 @@ SET etapa_funil = CASE LOWER(BTRIM(etapa_funil))
   WHEN 'reativacao' THEN 'reativacao'
   WHEN 'carteira' THEN 'carteira'
   ELSE 'entrada'
+END;
 
--- ─── 4. Remover check antigo sobre etapa_funil, se existir ────
+-- ─── 4. Remover views que dependem da coluna antes da troca de tipo ─
+-- PostgreSQL não permite ALTER COLUMN TYPE enquanto uma view depende da
+-- coluna. Todas as views removidas aqui são recriadas ao final do arquivo.
+DROP VIEW IF EXISTS public.vw_crm_metricas;
+DROP VIEW IF EXISTS public.vw_crm_pipeline;
+DROP VIEW IF EXISTS public.vw_dashboard_gestor;
+DROP VIEW IF EXISTS public.vw_pipeline_por_etapa;
+DROP VIEW IF EXISTS public.vw_performance_colaboradores;
+DROP VIEW IF EXISTS public.vw_funil_conversao;
+DROP VIEW IF EXISTS public.vw_leads_por_responsavel;
+DROP VIEW IF EXISTS public.vw_leads_para_ia;
+
+-- ─── 5. Remover check antigo sobre etapa_funil, se existir ────
 DO $$
 DECLARE
   v_constraint TEXT;
@@ -73,7 +86,7 @@ BEGIN
   END LOOP;
 END $$;
 
--- ─── 5. Converter coluna para enum ────────────────────────────
+-- ─── 6. Converter coluna para enum ────────────────────────────
 ALTER TABLE public.leads
   ALTER COLUMN etapa_funil DROP DEFAULT;
 
@@ -101,7 +114,7 @@ ALTER TABLE public.leads
   ALTER COLUMN etapa_funil SET DEFAULT 'entrada'::etapa_funil_enum,
   ALTER COLUMN etapa_funil SET NOT NULL;
 
--- ─── 6. Recriar views operacionais dependentes do funil ───────
+-- ─── 7. Recriar views operacionais dependentes do funil ───────
 CREATE OR REPLACE VIEW public.vw_crm_pipeline AS
 SELECT
   l.id,
@@ -231,3 +244,169 @@ FROM etapas e
 LEFT JOIN contagens c ON c.etapa_funil = e.etapa
 ORDER BY e.ordem;
 
+CREATE OR REPLACE VIEW public.vw_dashboard_gestor AS
+WITH metricas_leads AS (
+  SELECT
+    COUNT(*) AS total_leads,
+    COUNT(*) FILTER (WHERE etapa_funil = 'ganho') AS leads_ganhos,
+    COUNT(*) FILTER (WHERE etapa_funil = 'perdido') AS leads_perdidos,
+    COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') AS leads_ultimos_30d,
+    COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS leads_ultimos_7d,
+    COALESCE(SUM(valor_solicitado) FILTER (
+      WHERE etapa_funil NOT IN ('perdido','reativacao')
+    ), 0) AS valor_pipeline_ativo,
+    COALESCE(SUM(valor_solicitado) FILTER (
+      WHERE etapa_funil = 'ganho'
+    ), 0) AS valor_ganho_total
+  FROM public.leads
+),
+metricas_triagem AS (
+  SELECT
+    COUNT(*) AS total_triagem,
+    COUNT(*) FILTER (WHERE status = 'pendente') AS triagem_pendente,
+    COUNT(*) FILTER (WHERE status = 'convertido') AS triagem_convertida
+  FROM public.triagem_leads
+),
+metricas_conversas AS (
+  SELECT
+    COUNT(*) AS total_conversas,
+    COUNT(*) FILTER (WHERE status NOT IN ('resolvida','arquivada')) AS conversas_ativas
+  FROM public.crm_conversas
+),
+metricas_followups AS (
+  SELECT
+    COUNT(*) FILTER (
+      WHERE status = 'pendente' AND agendado_para < NOW()
+    ) AS followups_atrasados,
+    COUNT(*) FILTER (
+      WHERE status = 'pendente'
+        AND agendado_para BETWEEN NOW() AND NOW() + INTERVAL '24 hours'
+    ) AS followups_hoje
+  FROM public.crm_followups
+)
+SELECT
+  ml.total_leads,
+  ml.leads_ganhos,
+  ml.leads_perdidos,
+  ml.leads_ultimos_30d,
+  ml.leads_ultimos_7d,
+  ml.valor_pipeline_ativo,
+  ml.valor_ganho_total,
+  mt.total_triagem,
+  mt.triagem_pendente,
+  mt.triagem_convertida,
+  mc.total_conversas,
+  mc.conversas_ativas,
+  mf.followups_atrasados,
+  mf.followups_hoje
+FROM metricas_leads ml
+CROSS JOIN metricas_triagem mt
+CROSS JOIN metricas_conversas mc
+CROSS JOIN metricas_followups mf;
+
+CREATE OR REPLACE VIEW public.vw_performance_colaboradores AS
+SELECT
+  col.id AS colaborador_id,
+  col.nome,
+  col.cargo,
+  col.ativo,
+  COALESCE(l.total_leads, 0) AS total_leads,
+  COALESCE(l.leads_ganhos, 0) AS leads_ganhos,
+  COALESCE(l.leads_perdidos, 0) AS leads_perdidos,
+  COALESCE(l.leads_ativos, 0) AS leads_ativos,
+  COALESCE(l.valor_ganho, 0) AS valor_ganho,
+  COALESCE(l.valor_pipeline, 0) AS valor_pipeline,
+  CASE
+    WHEN COALESCE(l.total_leads, 0) > 0 THEN ROUND(
+      l.leads_ganhos::NUMERIC / l.total_leads * 100,
+      1
+    )
+    ELSE 0
+  END AS taxa_conversao_pct,
+  COALESCE(f.followups_atrasados, 0) AS followups_atrasados,
+  COALESCE(a.atividades_7d, 0) AS atividades_7d,
+  COALESCE(lc.leads_captados, 0) AS leads_captados
+FROM public.colaboradores col
+LEFT JOIN LATERAL (
+  SELECT
+    COUNT(*) AS total_leads,
+    COUNT(*) FILTER (WHERE etapa_funil = 'ganho') AS leads_ganhos,
+    COUNT(*) FILTER (WHERE etapa_funil = 'perdido') AS leads_perdidos,
+    COUNT(*) FILTER (
+      WHERE etapa_funil NOT IN ('ganho','perdido','reativacao')
+    ) AS leads_ativos,
+    COALESCE(SUM(valor_solicitado) FILTER (
+      WHERE etapa_funil = 'ganho'
+    ), 0) AS valor_ganho,
+    COALESCE(SUM(valor_solicitado) FILTER (
+      WHERE etapa_funil NOT IN ('perdido','reativacao')
+    ), 0) AS valor_pipeline
+  FROM public.leads
+  WHERE responsavel_id = col.id
+) l ON TRUE
+LEFT JOIN LATERAL (
+  SELECT COUNT(*) AS leads_captados
+  FROM public.triagem_leads
+  WHERE captador_id = col.id
+) lc ON TRUE
+LEFT JOIN LATERAL (
+  SELECT COUNT(*) FILTER (
+    WHERE status = 'pendente' AND agendado_para < NOW()
+  ) AS followups_atrasados
+  FROM public.crm_followups
+  WHERE colaborador_id = col.id
+) f ON TRUE
+LEFT JOIN LATERAL (
+  SELECT COUNT(*) FILTER (
+    WHERE created_at >= NOW() - INTERVAL '7 days'
+  ) AS atividades_7d
+  FROM public.crm_atividades
+  WHERE colaborador_id = col.id
+) a ON TRUE;
+
+CREATE OR REPLACE VIEW public.vw_leads_por_responsavel AS
+SELECT
+  l.responsavel_id,
+  col.nome AS responsavel_nome,
+  col.cargo AS responsavel_cargo,
+  l.id AS lead_id,
+  l.nome AS lead_nome,
+  l.telefone,
+  l.empresa,
+  l.etapa_funil,
+  l.temperatura,
+  l.score_efetivo,
+  l.prioridade,
+  l.valor_solicitado,
+  l.proximo_followup,
+  l.ultimo_contato_em,
+  l.caixa_id,
+  cx.nome AS caixa_nome,
+  l.created_at,
+  l.updated_at,
+  EXTRACT(DAY FROM NOW() - COALESCE(l.ultimo_contato_em, l.created_at))::INTEGER AS dias_sem_contato
+FROM public.leads l
+LEFT JOIN public.colaboradores col ON col.id = l.responsavel_id
+LEFT JOIN public.crm_caixas cx ON cx.id = l.caixa_id
+WHERE l.etapa_funil <> 'reativacao';
+
+CREATE OR REPLACE VIEW public.vw_leads_para_ia AS
+SELECT
+  l.id,
+  l.nome,
+  l.empresa,
+  l.tipo_pessoa,
+  l.produto_interesse,
+  l.valor_solicitado,
+  l.prazo_meses,
+  l.origem,
+  l.etapa_funil,
+  l.temperatura,
+  l.score_ia,
+  l.score_efetivo,
+  l.created_at,
+  l.updated_at,
+  (l.score_ia = 0 OR l.score_ia IS NULL) AS precisa_score,
+  EXTRACT(DAY FROM NOW() - l.created_at)::INTEGER AS dias_desde_criacao
+FROM public.leads l
+WHERE l.etapa_funil NOT IN ('ganho','perdido','reativacao');

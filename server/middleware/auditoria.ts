@@ -10,7 +10,7 @@ export function setAuditoriaPool(pool: Pool) {
 export interface AuditoriaPayload {
   acao: string;
   entidade?: string;
-  entidade_id?: number | null;
+  entidade_id?: string | null;
   dados_antes?: Record<string, unknown> | null;
   dados_depois?: Record<string, unknown> | null;
 }
@@ -76,7 +76,7 @@ export function rotaAuditLogs(pool: Pool) {
 
       if (entidade) { conditions.push(`entidade = $${idx++}`); params.push(entidade); }
       if (acao)     { conditions.push(`acao ILIKE $${idx++}`); params.push(`%${acao}%`); }
-      if (usuario_id) { conditions.push(`usuario_id = $${idx++}`); params.push(Number(usuario_id)); }
+      if (usuario_id) { conditions.push(`usuario_id = $${idx++}`); params.push(usuario_id); }
 
       const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 

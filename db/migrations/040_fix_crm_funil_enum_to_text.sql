@@ -12,6 +12,54 @@
 -- ============================================================
 
 
+-- Preserva todas as views públicas antes de remover apenas as que dependem de
+-- leads.etapa_funil. O backup também cobre views adicionadas por versões futuras
+-- e as dependências em cascata entre views.
+DROP TABLE IF EXISTS pg_temp.migration_040_funil_views;
+CREATE TEMP TABLE migration_040_funil_views (
+  schema_name TEXT NOT NULL,
+  view_name TEXT NOT NULL,
+  definition TEXT NOT NULL,
+  restored BOOLEAN NOT NULL DEFAULT FALSE,
+  last_error TEXT,
+  PRIMARY KEY (schema_name, view_name)
+) ON COMMIT PRESERVE ROWS;
+
+INSERT INTO migration_040_funil_views (schema_name, view_name, definition)
+SELECT n.nspname, c.relname, pg_get_viewdef(c.oid, TRUE)
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relkind = 'v'
+  AND n.nspname = 'public';
+
+-- O trigger também mantém dependência do tipo da coluna em algumas versões.
+DROP TRIGGER IF EXISTS trg_leads_movimentacao_funil ON public.leads;
+
+DO $$
+DECLARE
+  v_view RECORD;
+BEGIN
+  FOR v_view IN
+    SELECT DISTINCT n.nspname AS schema_name, c.relname AS view_name
+    FROM pg_depend d
+    JOIN pg_rewrite r ON r.oid = d.objid
+    JOIN pg_class c ON c.oid = r.ev_class
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE d.refobjid = 'public.leads'::regclass
+      AND d.refobjsubid = (
+        SELECT attnum
+        FROM pg_attribute
+        WHERE attrelid = 'public.leads'::regclass
+          AND attname = 'etapa_funil'
+          AND NOT attisdropped
+      )
+      AND c.relkind = 'v'
+      AND n.nspname = 'public'
+  LOOP
+    EXECUTE format('DROP VIEW IF EXISTS %I.%I CASCADE', v_view.schema_name, v_view.view_name);
+  END LOOP;
+END $$;
+
 -- ─── 1. Verificar se etapa_funil ainda é enum e converter para TEXT ─────────
 DO $$
 DECLARE
@@ -41,6 +89,63 @@ BEGIN
     RAISE NOTICE 'etapa_funil já é TEXT (tipo: %). Nenhuma alteração necessária.', v_col_type;
   END IF;
 END $$;
+
+-- Recria as views removidas, respeitando dependências entre elas. As definições
+-- capturadas pelo PostgreSQL contêm casts para o enum antigo; após a conversão,
+-- esses casts precisam apontar para TEXT.
+DO $$
+DECLARE
+  v_view RECORD;
+  v_progress BOOLEAN;
+  v_pending TEXT;
+BEGIN
+  LOOP
+    EXIT WHEN NOT EXISTS (
+      SELECT 1
+      FROM migration_040_funil_views
+      WHERE to_regclass(format('%I.%I', schema_name, view_name)) IS NULL
+        AND NOT restored
+    );
+
+    v_progress := FALSE;
+
+    FOR v_view IN
+      SELECT schema_name, view_name, definition
+      FROM migration_040_funil_views
+      WHERE to_regclass(format('%I.%I', schema_name, view_name)) IS NULL
+        AND NOT restored
+      ORDER BY schema_name, view_name
+    LOOP
+      BEGIN
+        EXECUTE format(
+          'CREATE VIEW %I.%I AS %s',
+          v_view.schema_name,
+          v_view.view_name,
+          replace(v_view.definition, '::etapa_funil_enum', '::text')
+        );
+        UPDATE migration_040_funil_views
+        SET restored = TRUE, last_error = NULL
+        WHERE schema_name = v_view.schema_name AND view_name = v_view.view_name;
+        v_progress := TRUE;
+      EXCEPTION WHEN OTHERS THEN
+        UPDATE migration_040_funil_views
+        SET last_error = SQLERRM
+        WHERE schema_name = v_view.schema_name AND view_name = v_view.view_name;
+      END;
+    END LOOP;
+
+    IF NOT v_progress THEN
+      SELECT string_agg(format('%I.%I: %s', schema_name, view_name, last_error), E'\n')
+      INTO v_pending
+      FROM migration_040_funil_views
+      WHERE to_regclass(format('%I.%I', schema_name, view_name)) IS NULL
+        AND NOT restored;
+      RAISE EXCEPTION 'Não foi possível recriar as views dependentes de etapa_funil:%', E'\n' || v_pending;
+    END IF;
+  END LOOP;
+END $$;
+
+DROP TABLE migration_040_funil_views;
 
 -- ─── 2. Garantir NOT NULL e DEFAULT ─────────────────────────────────────────
 UPDATE public.leads
@@ -90,8 +195,6 @@ ALTER TABLE public.leads
 -- não o removemos para evitar quebrar dependências.
 
 -- ─── 6. Recriar trigger de movimentação de funil (compatível com TEXT) ───────
-DROP TRIGGER IF EXISTS trg_leads_movimentacao_funil ON public.leads;
-
 CREATE OR REPLACE FUNCTION public.fn_registrar_movimentacao_funil()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -142,6 +245,7 @@ BEGIN
   END IF;
 
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_leads_movimentacao_funil
@@ -253,4 +357,3 @@ CREATE INDEX IF NOT EXISTS idx_crm_logs_lead_id
 
 CREATE INDEX IF NOT EXISTS idx_crm_logs_usuario_id
   ON public.crm_logs (usuario_id, created_at DESC);
-

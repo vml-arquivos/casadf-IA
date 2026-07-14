@@ -171,6 +171,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.atualizado_em = NOW();
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_documentos_regras_credito_atualizado ON public.documentos_regras_credito;

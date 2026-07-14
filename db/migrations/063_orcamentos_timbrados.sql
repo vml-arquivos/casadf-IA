@@ -60,6 +60,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.atualizado_em = NOW();
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_orcamentos_timbrados_atualizado_em ON public.orcamentos_timbrados;
@@ -69,6 +70,6 @@ BEFORE UPDATE ON public.orcamentos_timbrados
 FOR EACH ROW
 EXECUTE FUNCTION public.atualizar_timestamp_orcamentos_timbrados();
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados TO destravadb;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados_anexos TO destravadb;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO destravadb;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados TO CURRENT_USER;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orcamentos_timbrados_anexos TO CURRENT_USER;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;

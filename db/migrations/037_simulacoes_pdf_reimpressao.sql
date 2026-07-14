@@ -24,4 +24,4 @@ CREATE INDEX IF NOT EXISTS idx_simulacao_pdfs_colaborador_id
 CREATE INDEX IF NOT EXISTS idx_simulacao_pdfs_criado_em
   ON public.simulacao_pdfs(criado_em DESC);
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.simulacao_pdfs TO destravadb;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.simulacao_pdfs TO CURRENT_USER;

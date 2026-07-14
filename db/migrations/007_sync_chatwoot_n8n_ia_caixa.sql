@@ -78,6 +78,7 @@ BEGIN
   ORDER BY created_at ASC
   LIMIT 1;
   RETURN v_caixa_id;
+END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- ─── 5. Função: controlar IA por caixa ───────────────────────
@@ -115,6 +116,7 @@ BEGIN
   END IF;
 
   RETURN TRUE;
+END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- ─── 6. View: conversas ativas por agente ────────────────────

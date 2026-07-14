@@ -66,6 +66,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.atualizado_em = NOW();
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_analises_cnpj_empresa_atualizado_em ON public.analises_cnpj_empresa;

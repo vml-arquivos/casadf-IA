@@ -38,6 +38,7 @@ BEGIN
       'status_change','ia_acao','followup','outro',
       'whatsapp_mensagem','whatsapp_inicio','whatsapp_encerrado'
     ));
+END;
 $$;
 
 -- 5. Índice para deduplicação por email em leads
@@ -49,4 +50,3 @@ CREATE INDEX IF NOT EXISTS idx_leads_email_lower
 CREATE INDEX IF NOT EXISTS idx_crm_atividades_tipo_whatsapp
   ON public.crm_atividades (lead_id, created_at DESC)
   WHERE tipo IN ('whatsapp_mensagem','whatsapp_inicio','whatsapp_encerrado','whatsapp');
-

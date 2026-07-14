@@ -35,6 +35,7 @@ BEGIN
   END IF;
 
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_empresas_estado_uf_sync ON public.empresas;
@@ -46,5 +47,5 @@ EXECUTE FUNCTION public.sincronizar_empresas_estado_uf();
 
 CREATE INDEX IF NOT EXISTS idx_empresas_uf ON public.empresas(uf);
 
-GRANT SELECT, INSERT, UPDATE ON public.empresas TO destravadb;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO destravadb;
+GRANT SELECT, INSERT, UPDATE ON public.empresas TO CURRENT_USER;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO CURRENT_USER;

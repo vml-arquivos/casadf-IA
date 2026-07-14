@@ -138,7 +138,7 @@ SELECT
   COUNT(DISTINCT lc.id)                                         AS leads_captados
 FROM public.colaboradores col
 LEFT JOIN public.leads l  ON l.responsavel_id = col.id
-LEFT JOIN public.leads lc ON lc.captador_id = col.id
+LEFT JOIN public.triagem_leads lc ON lc.captador_id = col.id
 LEFT JOIN public.crm_followups f ON f.colaborador_id = col.id
 LEFT JOIN public.crm_atividades a ON a.colaborador_id = col.id
 GROUP BY col.id, col.nome, col.cargo, col.ativo;

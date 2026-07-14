@@ -115,6 +115,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.atualizado_em = NOW();
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_documentos_arquivos_atualizado_em ON public.documentos_arquivos;
@@ -234,6 +235,10 @@ BEGIN
 END $$;
 
 -- Migração contratos gerados -> documentos_arquivos como entidade contrato.
+ALTER TABLE public.contratos_gerados
+  ADD COLUMN IF NOT EXISTS cliente_pf_id UUID
+    REFERENCES public.clientes_pf(id) ON DELETE SET NULL;
+
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='contratos_gerados') THEN

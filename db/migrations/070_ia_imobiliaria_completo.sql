@@ -92,7 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_simulacoes_mb_valor ON simulacoes_multi_banco(val
 -- ── Tabela: analises_juridicas ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS analises_juridicas (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  documento_id          UUID REFERENCES documentos_leads(id) ON DELETE SET NULL,
+  documento_id          UUID REFERENCES documentos_arquivos(id) ON DELETE SET NULL,
   imovel_id             UUID REFERENCES imoveis(id) ON DELETE SET NULL,
   lead_id               UUID REFERENCES leads(id) ON DELETE SET NULL,
 
@@ -210,4 +210,3 @@ CREATE TABLE IF NOT EXISTS relatorios_inteligentes (
 
 CREATE INDEX IF NOT EXISTS idx_relatorios_tipo ON relatorios_inteligentes(tipo);
 CREATE INDEX IF NOT EXISTS idx_relatorios_periodo ON relatorios_inteligentes(periodo_inicio, periodo_fim);
-

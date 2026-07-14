@@ -1,6 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 ALTER TABLE public.acompanhamentos_bancarios
-ALTER TABLE public.acompanhamentos_bancarios
   ADD COLUMN IF NOT EXISTS limite_operacional_anual NUMERIC(15,2);
 ALTER TABLE public.acompanhamentos_bancarios
   ADD COLUMN IF NOT EXISTS media_mensal_base NUMERIC(15,2);
@@ -21,6 +20,8 @@ ALTER TABLE public.acompanhamentos_bancarios
 UPDATE public.acompanhamentos_bancarios
 SET
   updated_at = NOW()
+WHERE updated_at IS NULL;
+
 ALTER TABLE public.acompanhamento_bancario_atualizacoes
   ADD COLUMN IF NOT EXISTS entrada_pix NUMERIC(15,2) DEFAULT 0;
 ALTER TABLE public.acompanhamento_bancario_atualizacoes
@@ -68,7 +69,27 @@ ALTER TABLE public.acompanhamento_bancario_atualizacoes
 ALTER TABLE public.acompanhamento_bancario_atualizacoes
   ADD COLUMN IF NOT EXISTS status_aderencia VARCHAR(40);
 ALTER TABLE public.acompanhamento_bancario_atualizacoes
-  ADD COLUMN IF NOT EXISTS alerta_aderencia VARCHAR(40);
+  ADD COLUMN IF NOT EXISTS alerta_aderencia BOOLEAN DEFAULT false;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompanhamento_bancario_atualizacoes'
+      AND column_name = 'alerta_aderencia'
+      AND data_type <> 'boolean'
+  ) THEN
+    ALTER TABLE public.acompanhamento_bancario_atualizacoes
+      ALTER COLUMN alerta_aderencia DROP DEFAULT,
+      ALTER COLUMN alerta_aderencia TYPE BOOLEAN
+      USING (
+        LOWER(COALESCE(alerta_aderencia::TEXT, 'false')) IN
+        ('true','t','1','sim','s','yes','y','vermelho','amarelo','critico','crítico','alerta','alta')
+      ),
+      ALTER COLUMN alerta_aderencia SET DEFAULT false;
+  END IF;
+END $$;
 ALTER TABLE public.acompanhamento_bancario_atualizacoes
   ADD COLUMN IF NOT EXISTS motivo_alerta_aderencia TEXT;
 ALTER TABLE public.acompanhamento_bancario_atualizacoes
@@ -180,6 +201,9 @@ WITH base AS (
     u.id,
     a.id AS acompanhamento_id,
     COALESCE(u.total_entradas, 0) AS total_sem,
+    COALESCE(a.referencia_semanal, 0) AS referencia_sem,
+    COALESCE(a.teto_semanal, 0) AS teto_sem,
+    COALESCE(a.teto_mensal, 0) AS teto_mes,
     COALESCE(u.data_atualizacao, NOW()) AS data_atualizacao
   FROM public.acompanhamento_bancario_atualizacoes u
   JOIN public.acompanhamentos_bancarios a ON a.id = u.acompanhamento_id
@@ -238,13 +262,10 @@ SET
     WHEN c.referencia_sem > 0 AND c.total_sem < c.referencia_sem THEN 'abaixo_referencia'
     ELSE 'dentro_da_faixa'
   END,
-  alerta_aderencia = CASE
-    WHEN c.teto_sem > 0 AND c.total_sem > c.teto_sem * 1.20 THEN 'critico'
-    WHEN c.teto_sem > 0 AND c.total_sem > c.teto_sem THEN 'vermelho'
-    WHEN c.referencia_sem > 0 AND c.total_sem < c.referencia_sem * 0.70 THEN 'vermelho'
-    WHEN c.referencia_sem > 0 AND c.total_sem < c.referencia_sem THEN 'amarelo'
-    ELSE 'verde'
-  END,
+  alerta_aderencia = (
+    (c.teto_sem > 0 AND c.total_sem > c.teto_sem)
+    OR (c.referencia_sem > 0 AND c.total_sem < c.referencia_sem)
+  ),
   motivo_alerta_aderencia = CASE
     WHEN c.teto_sem > 0 AND c.total_sem > c.teto_sem * 1.20 THEN 'Semana acima de 120% do teto operacional.'
     WHEN c.teto_sem > 0 AND c.total_sem > c.teto_sem THEN 'Semana acima do teto operacional.'
@@ -304,6 +325,15 @@ CREATE TABLE IF NOT EXISTS public.acompanhamento_compensacoes_historico (
   criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   metadata JSONB DEFAULT '{}'::jsonb
 );
+ALTER TABLE public.acompanhamento_compensacoes_historico
+  ADD COLUMN IF NOT EXISTS mes INTEGER,
+  ADD COLUMN IF NOT EXISTS ano INTEGER,
+  ADD COLUMN IF NOT EXISTS meta_dinamica NUMERIC(15,2),
+  ADD COLUMN IF NOT EXISTS teto_dinamico NUMERIC(15,2),
+  ADD COLUMN IF NOT EXISTS acumulado_mensal NUMERIC(15,2),
+  ADD COLUMN IF NOT EXISTS saldo_disponivel_mes NUMERIC(15,2),
+  ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 CREATE INDEX IF NOT EXISTS idx_acomp_banc_atualizacoes_acomp_data
   ON public.acompanhamento_bancario_atualizacoes (acompanhamento_id, data_atualizacao DESC);
 CREATE INDEX IF NOT EXISTS idx_acomp_banc_atualizacoes_acomp_semana

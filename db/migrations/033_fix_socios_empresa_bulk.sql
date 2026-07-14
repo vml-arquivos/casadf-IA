@@ -10,6 +10,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
+END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS public.socios_empresa (
@@ -43,4 +44,3 @@ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
