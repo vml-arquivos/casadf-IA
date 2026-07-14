@@ -52,8 +52,7 @@ BEGIN
       TRUE
     );
 
-    -- Atualizar ultimo_contato_em
-    NEW.ultimo_contato_em = NOW();
+
 
   END IF;
   RETURN NEW;
@@ -67,7 +66,7 @@ BEGIN
     WHERE tgname = 'trg_leads_movimentacao_funil'
   ) THEN
     CREATE TRIGGER trg_leads_movimentacao_funil
-      BEFORE UPDATE ON public.leads
+      AFTER UPDATE ON public.leads
       FOR EACH ROW
       EXECUTE FUNCTION public.fn_registrar_movimentacao_funil();
     RAISE NOTICE 'Trigger trg_leads_movimentacao_funil criado';
@@ -75,7 +74,7 @@ BEGIN
     -- Recriar para garantir versão atualizada da função
     DROP TRIGGER trg_leads_movimentacao_funil ON public.leads;
     CREATE TRIGGER trg_leads_movimentacao_funil
-      BEFORE UPDATE ON public.leads
+      AFTER UPDATE ON public.leads
       FOR EACH ROW
       EXECUTE FUNCTION public.fn_registrar_movimentacao_funil();
     RAISE NOTICE 'Trigger trg_leads_movimentacao_funil recriado';
